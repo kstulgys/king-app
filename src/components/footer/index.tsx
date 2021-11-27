@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
                 <a
                     href="https://github.com/pankod"
                     target="_blank"
-                    data-testid="pankod-logo"
+                    data-testid="pankod-logo" rel="noreferrer"
                 >
                     <Image
                         data-test="icon"
@@ -29,7 +29,7 @@ export const Footer: React.FC = () => {
                     <a
                         href="https://github.com/pankod"
                         target="_blank"
-                        style={iconStyle}
+                        style={iconStyle} rel="noreferrer"
                     >
                         <Image
                             data-test="icon"
@@ -42,7 +42,7 @@ export const Footer: React.FC = () => {
                     <a
                         href="https://twitter.com/PankodDev"
                         target="_blank"
-                        style={iconStyle}
+                        style={iconStyle} rel="noreferrer"
                     >
                         <Image
                             data-test="icon"
@@ -55,7 +55,7 @@ export const Footer: React.FC = () => {
                     <a
                         href="https://www.youtube.com/channel/UCBGOeQkv1XW3ptryLWlQbAQ"
                         target="_blank"
-                        style={iconStyle}
+                        style={iconStyle} rel="noreferrer"
                     >
                         <Image
                             data-test="icon"
@@ -68,7 +68,7 @@ export const Footer: React.FC = () => {
                     <a
                         href="https://www.linkedin.com/company/pankod-yazilim-ve-danismanlik/"
                         target="_blank"
-                        style={iconStyle}
+                        style={iconStyle} rel="noreferrer"
                     >
                         <Image
                             data-test="icon"

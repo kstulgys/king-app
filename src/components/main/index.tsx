@@ -20,7 +20,7 @@ export const Main: React.FC = () => {
                 <a
                     data-test="docs-btn-anchor"
                     href="https://pankod.github.io/superplate/"
-                    target="_blank"
+                    target="_blank" rel="noreferrer"
                 >
                     Docs
                 </a>
