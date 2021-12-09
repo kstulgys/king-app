@@ -20,7 +20,101 @@ import {
   Th,
   Td,
   TableCaption,
+  Grid,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from "@chakra-ui/react";
+
+import { proxy, useSnapshot } from "valtio";
+
+const games = [
+  {
+    no: 1,
+    title: "Tricks+",
+    each: 12,
+    totalPoints: 120,
+    count: 10,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 2,
+    title: "Tricks++",
+    each: 12,
+    totalPoints: 120,
+    count: 10,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 3,
+    title: "Tricks-",
+    each: -4,
+    totalPoints: -40,
+    count: 10,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 4,
+    title: "Hearts",
+    each: -5,
+    totalPoints: -40,
+    count: 8,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 5,
+    title: "Queens",
+    each: -10,
+    totalPoints: -40,
+    count: 4,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 6,
+    title: "Jacks",
+    each: -10,
+    totalPoints: -40,
+    count: 4,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 7,
+    title: "King",
+    each: -40,
+    totalPoints: -40,
+    count: 1,
+    currentPoints: 0,
+    result: [],
+  },
+  {
+    no: 8,
+    title: "Last 2",
+    each: -20,
+    totalPoints: -40,
+    count: 2,
+    currentPoints: 0,
+    result: [],
+  },
+];
+
+const initGame = Array(4)
+  .fill(null)
+  .map((_, index) => ({ ...games, player: `Player ${index + 1}` }));
+
+// You wrap your state
+const state = proxy({ game: initGame });
+
+function useState() {
+  return useSnapshot(state);
+}
 
 const Home: React.FC = () => {
   const [isOn, { on, off, toggle }] = useBoolean(false);
@@ -44,73 +138,54 @@ const Home: React.FC = () => {
 
 function Game() {
   return (
-    <Stack width="full" justifyContent="flex-start">
-      <Stack isInline border="1px solid" p={2} rounded="md">
-        <Stack borderRight="1px solid" pr={2}>
-          <Text m={0}>Player</Text>
-          <Text m={0}>Karolis</Text>
-        </Stack>
-        <Stack>
-          <Text m={0} textAlign="center">
-            Tricks+
-          </Text>
-          <Text m={0} textAlign="center">
-            ✅
-          </Text>
-        </Stack>
-        <Stack>
-          <Text m={0} textAlign="center">
-            Tricks++
-          </Text>
-          <Text m={0} textAlign="center">
-            ✅
-          </Text>
-        </Stack>
-        <Stack>
-          <Text m={0} textAlign="center">
-            Tricks-
-          </Text>
-          <Text m={0} textAlign="center">
-            ✅
-          </Text>
-        </Stack>
-      </Stack>
-
-      {/* <Table variant="simple">
-        <TableCaption>Imperial to metric conversion factors</TableCaption>
-        <Thead>
-          <Tr>
-            <Th>To convert</Th>
-            <Th>into</Th>
-            <Th isNumeric>multiply by</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          <Tr>
-            <Td>inches</Td>
-            <Td>millimetres (mm)</Td>
-            <Td isNumeric>25.4</Td>
-          </Tr>
-          <Tr>
-            <Td>feet</Td>
-            <Td>centimetres (cm)</Td>
-            <Td isNumeric>30.48</Td>
-          </Tr>
-          <Tr>
-            <Td>yards</Td>
-            <Td>metres (m)</Td>
-            <Td isNumeric>0.91444</Td>
-          </Tr>
-        </Tbody>
-        <Tfoot>
-          <Tr>
-            <Th>To convert</Th>
-            <Th>into</Th>
-            <Th isNumeric>multiply by</Th>
-          </Tr>
-        </Tfoot>
-      </Table> */}
+    <Stack width="full">
+      <PlayersContainer />
     </Stack>
+  );
+}
+
+function PlayerGame() {
+  return (
+    <Grid templateColumns={["repeat(2, 1fr)", "repeat(4, 1fr)"]} gap={[2, 4]} color="gray.900">
+      {games.map(({ title }) => {
+        return (
+          <Button key={title} height={[12, 16]} fontSize={["sm", "md"]}>
+            <Stack>
+              <Text m={0} textAlign="center">
+                {title}
+              </Text>
+              {/* <Text m={0} textAlign="center">
+              ✅
+            </Text> */}
+            </Stack>
+          </Button>
+        );
+      })}
+    </Grid>
+  );
+}
+
+function PlayersContainer() {
+  return (
+    <Accordion allowMultiple>
+      {[0, 0, 0, 0].map((_, index) => {
+        return (
+          <AccordionItem key={index}>
+            <h2>
+              <AccordionButton>
+                <Box flex="1" textAlign="left">
+                  Player {index + 1}
+                </Box>
+                <AccordionIcon />
+              </AccordionButton>
+            </h2>
+            <AccordionPanel py={4} px={0}>
+              <PlayerGame />
+            </AccordionPanel>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
   );
 }
 
