@@ -110,7 +110,6 @@ const state = proxy({
     const playerIndex = state.players.findIndex((p) => p.id === playerId);
     const foundPlayer = state.players[playerIndex];
     state.currentGame = { game: foundGame, player: foundPlayer };
-    state.currentGame.player = foundPlayer?.name;
     const playerHistory = state.players[playerIndex].history;
     state.players[playerIndex].history = [...playerHistory, { ...foundGame }];
   },
@@ -153,21 +152,60 @@ function PlayerStats({ name, score }) {
   );
 }
 
-function MockSelectResult() {
+function getCurrentResult({count, each}){
+  const current =
+  Object.values(count).reduce((acc, next) => {
+    return (acc += next);
+  }, 0) * each
+
+return Math.round(current);
+}
+
+function SelectResult() {
+  const snap = useState();
+  const [count, setCount] = React.useState({});
+
+  React.useEffect(() => {}, [count]);
+
+  const handleSelect = ({ playerId, num }) => {
+    console.log({ playerId, num });
+    setCount((prev) => ({ ...prev, [playerId]: num }));
+  };
+
+  const currentCount = React.useMemo(() => {
+    return getCurrentResult({count, each: snap.currentGame.game.each}
+  }, [count, snap.currentGame.game.each]);
+
+  const isDisabled = currentCount !== snap.currentGame.game.totalPoints;
+
   return (
-    <HStack>
-      <Box pr={4}>
-        <Text m={0}>Player-1</Text>
-      </Box>
-      <Box flex={1}>
-        <Select>
-          <option value="1">1</option>
-          <option value="1">1</option>
-          <option value="1">1</option>
-          <option value="1">1</option>
-        </Select>
-      </Box>
-    </HStack>
+    <Stack>
+      {snap.players.map((player) => {
+        return (
+          <HStack key={player.id}>
+            <Box pr={4}>
+              <Text m={0}>{player.name}</Text>
+            </Box>
+            <Box flex={1}>
+              <Select onChange={(e) => handleSelect({ playerId: player.id, num: +e.target.value })}>
+                {Array(snap.currentGame.game.count + 1)
+                  .fill(null)
+                  .map((_, index) => {
+                    return (
+                      <option key={index} value={index}>
+                        {index}
+                      </option>
+                    );
+                  })}
+              </Select>
+            </Box>
+          </HStack>
+        );
+      })}
+      <Button isDisabled={isDisabled}>
+        Submit {currentCount}/{snap.currentGame.game.totalPoints}
+      </Button>
+    </Stack>
   );
 }
 
@@ -186,14 +224,13 @@ function Statistics() {
         <Stack spacing={4}>
           <Stack>
             <Text m={0} textAlign="center">
-              Current game: {snap.currentGame.game.name}
+              Current game
             </Text>
-            <MockSelectResult />
-            <MockSelectResult />
-            <MockSelectResult />
-            <MockSelectResult />
+            <Text m={0} textAlign="center">
+              {snap.currentGame.game.name} ({snap.currentGame.player.name})
+            </Text>
+            <SelectResult />
           </Stack>
-          <Button>Submit 120/120</Button>
         </Stack>
       ) : (
         <Box>
