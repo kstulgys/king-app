@@ -92,11 +92,6 @@ const games = [
   },
 ];
 
-const initGame = Array(4)
-  .fill(null)
-  .map((_, index) => ({ ...games, player: `Player ${index + 1}` }));
-
-// You wrap your state
 const state = proxy({
   games,
   players: [
@@ -107,25 +102,25 @@ const state = proxy({
   currentGame: {},
   playGame: ({ gameId, playerId }) => {
     const foundGame = state.games.find(({ id }) => id === gameId);
-    let response = false;
-    if (window.confirm(`Play ${foundGame.name}?`)) {
-      response = true;
-    } else {
-      response = false;
-    }
-    if (!response) return;
+    // let response = false;
+    // if (window.confirm(`Play ${foundGame.name}?`)) {
+    //   response = true;
+    // } else {
+    //   response = false;
+    // }
+    // if (!response) return;
     const playerIndex = state.players.findIndex((p) => p.id === playerId);
     const foundPlayer = state.players[playerIndex];
     state.currentGame = { game: foundGame, player: foundPlayer };
     const playerHistory = state.players[playerIndex].history;
     state.players[playerIndex].history = [...playerHistory, { ...foundGame }];
   },
-  submitGame: ({ gameId, scores }) => {
-    state.currentGame = {};
+  submitGame: ({ scores }) => {
     state.players = state.players.map((player) => {
       const score = scores[player.id];
-      return { ...player, score: Math.round(player.score + score) };
+      return { ...player, score: Math.round(player.score + Math.round((score || 0) * state.currentGame.game.each)) };
     });
+    state.currentGame = {};
   },
 });
 
@@ -166,9 +161,9 @@ function PlayerStats({ name, score }) {
   );
 }
 
-function getCurrentResult({ count, each }) {
+function getCurrentResult({ scores, each }) {
   const current =
-    Object.values(count).reduce((acc, next) => {
+    Object.values(scores).reduce((acc, next) => {
       return (acc += next);
     }, 0) * each;
 
@@ -177,9 +172,9 @@ function getCurrentResult({ count, each }) {
 
 function SelectResult() {
   const snap = useState();
-  const [count, setCount] = React.useState({});
+  const [scores, setCount] = React.useState({});
 
-  React.useEffect(() => {}, [count]);
+  React.useEffect(() => {}, [scores]);
 
   const handleSelect = ({ playerId, num }) => {
     console.log({ playerId, num });
@@ -187,8 +182,8 @@ function SelectResult() {
   };
 
   const currentCount = React.useMemo(() => {
-    return getCurrentResult({ count, each: snap.currentGame.game.each });
-  }, [count, snap.currentGame.game.each]);
+    return getCurrentResult({ scores, each: snap.currentGame.game.each });
+  }, [scores, snap.currentGame.game.each]);
 
   const isDisabled = currentCount !== snap.currentGame.game.totalPoints;
 
@@ -216,7 +211,7 @@ function SelectResult() {
           </HStack>
         );
       })}
-      <Button isDisabled={isDisabled}>
+      <Button isDisabled={isDisabled} onClick={() => snap.submitGame({ scores })}>
         Submit {currentCount}/{snap.currentGame.game.totalPoints}
       </Button>
     </Stack>
