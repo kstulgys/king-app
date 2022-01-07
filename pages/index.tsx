@@ -107,11 +107,25 @@ const state = proxy({
   currentGame: {},
   playGame: ({ gameId, playerId }) => {
     const foundGame = state.games.find(({ id }) => id === gameId);
+    let response = false;
+    if (window.confirm(`Play ${foundGame.name}?`)) {
+      response = true;
+    } else {
+      response = false;
+    }
+    if (!response) return;
     const playerIndex = state.players.findIndex((p) => p.id === playerId);
     const foundPlayer = state.players[playerIndex];
     state.currentGame = { game: foundGame, player: foundPlayer };
     const playerHistory = state.players[playerIndex].history;
     state.players[playerIndex].history = [...playerHistory, { ...foundGame }];
+  },
+  submitGame: ({ gameId, scores }) => {
+    state.currentGame = {};
+    state.players = state.players.map((player) => {
+      const score = scores[player.id];
+      return { ...player, score: Math.round(player.score + score) };
+    });
   },
 });
 
@@ -152,13 +166,13 @@ function PlayerStats({ name, score }) {
   );
 }
 
-function getCurrentResult({count, each}){
+function getCurrentResult({ count, each }) {
   const current =
-  Object.values(count).reduce((acc, next) => {
-    return (acc += next);
-  }, 0) * each
+    Object.values(count).reduce((acc, next) => {
+      return (acc += next);
+    }, 0) * each;
 
-return Math.round(current);
+  return Math.round(current);
 }
 
 function SelectResult() {
@@ -173,7 +187,7 @@ function SelectResult() {
   };
 
   const currentCount = React.useMemo(() => {
-    return getCurrentResult({count, each: snap.currentGame.game.each}
+    return getCurrentResult({ count, each: snap.currentGame.game.each });
   }, [count, snap.currentGame.game.each]);
 
   const isDisabled = currentCount !== snap.currentGame.game.totalPoints;
@@ -295,19 +309,20 @@ function PlayersContainer() {
   function GameButton({ name, gameId, playerId }) {
     const snap = useState();
 
-    const isDisabled = React.useMemo(() => {
-      const isPlaying = !!snap.currentGame?.game;
-      if (isPlaying) return true;
+    const isPlayed = React.useMemo(() => {
       return snap.players.find(({ id }) => id === playerId)?.history.find(({ id }) => id === gameId);
     }, [snap.players, snap.currentGame, gameId, playerId]);
 
     return (
       <Button
-        isDisabled={isDisabled}
+        isDisabled={!!snap.currentGame?.game}
         key={gameId}
         height={[12, 16]}
         fontSize={["sm", "md"]}
         onClick={() => snap.playGame({ playerId, gameId })}
+        bg={isPlayed ? "teal.500" : "gray.100"}
+        color={isPlayed ? "white" : "gray.900"}
+        _hover={{}}
       >
         {name}
       </Button>
