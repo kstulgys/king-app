@@ -31,94 +31,140 @@ import {
   Select,
 } from "@chakra-ui/react";
 
-import { proxy, useSnapshot } from "valtio";
+import { proxy, snapshot, useSnapshot } from "valtio";
 
-const games = [
-  {
+const games = {
+  1: {
     id: 1,
     name: "Tricks+",
     each: 12,
     totalPoints: 120,
     count: 10,
   },
-  {
+  2: {
     id: 2,
     name: "Tricks++",
     each: 12,
     totalPoints: 120,
     count: 10,
   },
-  {
+  3: {
     id: 3,
     name: "Tricks-",
     each: -4,
     totalPoints: -40,
     count: 10,
   },
-  {
+  4: {
     id: 4,
     name: "Hearts",
     each: -5,
     totalPoints: -40,
     count: 8,
   },
-  {
+  5: {
     id: 5,
     name: "Queens",
     each: -10,
     totalPoints: -40,
     count: 4,
   },
-  {
+  6: {
     id: 6,
     name: "Jacks",
     each: -10,
     totalPoints: -40,
     count: 4,
   },
-  {
+  7: {
     id: 7,
     name: "King",
     each: -40,
     totalPoints: -40,
     count: 1,
   },
-  {
+  8: {
     id: 8,
     name: "Last 2",
     each: -20,
     totalPoints: -40,
     count: 2,
   },
-];
+};
+
+const players = {
+  1: {
+    id: 1,
+    name: "Player-1",
+    score: 0,
+    history: [],
+  },
+  2: {
+    id: 2,
+    name: "Player-2",
+    score: 0,
+    history: [],
+  },
+  3: {
+    id: 3,
+    name: "Player-3",
+    score: 0,
+    history: [],
+  },
+};
+
+const history = {
+  1: {
+    // [gameId]: {
+    //   gameName: "King",
+    //   orderNo: 1,
+    //   scores: [[playerId]: '1', playerName:"Karolis" score:100]
+    // },
+  },
+  2: {},
+  3: {},
+};
+
+// const playedGames = [{name:'King', scores:[{name:"Edita", score:100},{name:"Karolis", score:100}]}]
 
 const state = proxy({
   games,
-  players: [
-    { id: 1, name: "Player-1", score: 0, history: [] },
-    { id: 2, name: "Player-2", score: 0, history: [] },
-    { id: 3, name: "Player-3", score: 0, history: [] },
-  ],
+  players: {},
+  history,
   currentGame: {},
+  addPlayer: ({ name }) => {
+    const id = Date.now();
+    state.players[id] = {
+      id,
+      name,
+      score: 0,
+    };
+    state.history[id] = {};
+  },
   playGame: ({ gameId, playerId }) => {
-    const foundGame = state.games.find(({ id }) => id === gameId);
+    const foundGame = state.games[gameId];
+    const foundPlayer = state.players[playerId];
     // let response = false;
-    // if (window.confirm(`Play ${foundGame.name}?`)) {
+    // if (window.confirm(`${foundPlayer.name} will play ${foundGame.name}`. Do you wish to continue?)) {
     //   response = true;
     // } else {
     //   response = false;
     // }
     // if (!response) return;
-    const playerIndex = state.players.findIndex((p) => p.id === playerId);
-    const foundPlayer = state.players[playerIndex];
     state.currentGame = { game: foundGame, player: foundPlayer };
-    const playerHistory = state.players[playerIndex].history;
-    state.players[playerIndex].history = [...playerHistory, { ...foundGame }];
+    const orderNo = Object.values(state.history[playerId]).length + 1;
+    state.history[playerId][gameId] = { gameName: foundGame.name, orderNo, scores: [] };
   },
-  submitGame: ({ scores }) => {
-    state.players = state.players.map((player) => {
-      const score = scores[player.id];
-      return { ...player, score: Math.round(player.score + Math.round((score || 0) * state.currentGame.game.each)) };
+  submitGame: ({ scores, gameId }) => {
+    const playerIds = Object.keys(state.players);
+    playerIds.forEach((playerId) => {
+      const score = scores[playerId] || 0;
+      state.players[playerId].score += Math.round(score * state.currentGame.game.each);
+      state.history[state.currentGame.player.id][gameId].scores.push({
+        id: playerId,
+        playerName: state.players[playerId].name,
+        score,
+      });
     });
     state.currentGame = {};
   },
@@ -130,18 +176,18 @@ function useState() {
 
 const Home: React.FC = () => {
   const [isOn, { on, off, toggle }] = useBoolean(false);
-  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(false);
+  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(true);
 
   return (
     <VStack minH="100vh" bg="gray.100" color="white" py={[10, 20]} px={4}>
-      {!isOn && (
+      {/* {!isOn && (
         <Heading as="h1" textAlign="center" fontSize={["4xl", "6xl"]}>
           Wellcome to King game
         </Heading>
-      )}
+      )} */}
       <VStack width="full">
-        {!isOn && <Welcome on={on} />}
-        {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />}
+        {/* {!isOn && <Welcome on={on} />}
+        {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />} */}
         {isPlaying && <Game />}
       </VStack>
     </VStack>
@@ -174,11 +220,9 @@ function SelectResult() {
   const snap = useState();
   const [scores, setCount] = React.useState({});
 
-  React.useEffect(() => {}, [scores]);
-
-  const handleSelect = ({ playerId, num }) => {
-    console.log({ playerId, num });
-    setCount((prev) => ({ ...prev, [playerId]: num }));
+  const handleSelect = (e) => {
+    const { name: playerId, value: score } = e.target;
+    setCount((prev) => ({ ...prev, [playerId]: +score }));
   };
 
   const currentCount = React.useMemo(() => {
@@ -187,16 +231,20 @@ function SelectResult() {
 
   const isDisabled = currentCount !== snap.currentGame.game.totalPoints;
 
+  const playerList = React.useMemo(() => {
+    return Object.values(snap.players);
+  }, [snap.players]);
+
   return (
     <Stack>
-      {snap.players.map((player) => {
+      {playerList.map(({ id, name }) => {
         return (
-          <HStack key={player.id}>
+          <HStack key={id} justifyContent="space-between">
             <Box pr={4}>
-              <Text m={0}>{player.name}</Text>
+              <Text m={0}>{name}</Text>
             </Box>
-            <Box flex={1}>
-              <Select onChange={(e) => handleSelect({ playerId: player.id, num: +e.target.value })}>
+            <Box width={20}>
+              <Select name={id} onChange={handleSelect}>
                 {Array(snap.currentGame.game.count + 1)
                   .fill(null)
                   .map((_, index) => {
@@ -211,7 +259,7 @@ function SelectResult() {
           </HStack>
         );
       })}
-      <Button isDisabled={isDisabled} onClick={() => snap.submitGame({ scores })}>
+      <Button isDisabled={isDisabled} onClick={() => snap.submitGame({ scores, gameId: snap.currentGame.game.id })}>
         Submit {currentCount}/{snap.currentGame.game.totalPoints}
       </Button>
     </Stack>
@@ -221,11 +269,15 @@ function SelectResult() {
 function Statistics() {
   const snap = useState();
 
+  const playerList = React.useMemo(() => {
+    return Object.values(snap.players);
+  }, [snap.players]);
+
   return (
     <Stack p={4} shadow="base" bg="white" rounded="md" color="gray.900" width="full">
       <Text fontWeight="black">Stats</Text>
       <Stack spacing={4}>
-        {snap.players.map((player) => {
+        {playerList.map((player) => {
           return <PlayerStats key={player.id} {...player} />;
         })}
       </Stack>
@@ -236,7 +288,7 @@ function Statistics() {
               Current game
             </Text>
             <Text m={0} textAlign="center">
-              {snap.currentGame.game.name} ({snap.currentGame.player.name})
+              {snap.currentGame.game.name} (by {snap.currentGame.player.name})
             </Text>
             <SelectResult />
           </Stack>
@@ -267,9 +319,27 @@ function Game() {
 
 function PlayersContainer() {
   const snap = useState();
+  const [name, setName] = React.useState("");
+
+  const playerList = React.useMemo(() => {
+    return Object.values(snap.players);
+  }, [snap.players]);
+
+  const getHistory = React.useCallback(
+    ({ id }) => {
+      return Object.values(snap.history[id]);
+    },
+    [snap.history],
+  );
+
+  const handleAddPlayer = (e) => {
+    snap.addPlayer({ name });
+    setName("");
+  };
+
   return (
     <Stack spacing={4} color="gray.900">
-      {snap.players.map(({ name, id }) => {
+      {playerList.map(({ name, id }) => {
         return (
           <Stack key={id} shadow="base" bg="white" p={4} rounded="md">
             <Box flex="1" textAlign="left">
@@ -291,13 +361,44 @@ function PlayersContainer() {
                   </AccordionButton>
                 </h2>
                 <AccordionPanel>
-                  <Text>Hello</Text>
+                  <SimpleGrid columns={playerList.length + 1}>
+                    <Box></Box>
+                    {playerList.map(({ name, id }) => {
+                      return (
+                        <Box key={id}>
+                          <Text textAlign="center">{name}</Text>
+                        </Box>
+                      );
+                    })}
+                  </SimpleGrid>
+                  {getHistory({ id }).map((item) => {
+                    return (
+                      <SimpleGrid key={item.gameName} columns={playerList.length + 1}>
+                        <Box>
+                          <Text>{item.gameName}</Text>
+                        </Box>
+                        {item.scores.map(({ playerName, score }) => {
+                          return (
+                            <Box key={playerName}>
+                              <Text textAlign="center">{score}</Text>
+                            </Box>
+                          );
+                        })}
+                      </SimpleGrid>
+                    );
+                  })}
                 </AccordionPanel>
               </AccordionItem>
             </Accordion>
           </Stack>
         );
       })}
+      <Stack direction={["column", "column", "row"]}>
+        <Input bg="white" value={name} onChange={(e) => setName(e.target.value)} />
+        <Button colorScheme="pink" onClick={handleAddPlayer}>
+          Add Player
+        </Button>
+      </Stack>
     </Stack>
   );
 
@@ -305,8 +406,8 @@ function PlayersContainer() {
     const snap = useState();
 
     const isPlayed = React.useMemo(() => {
-      return snap.players.find(({ id }) => id === playerId)?.history.find(({ id }) => id === gameId);
-    }, [snap.players, snap.currentGame, gameId, playerId]);
+      return snap.history[playerId][gameId];
+    }, [snap.history, gameId, playerId]);
 
     return (
       <Button
@@ -327,9 +428,13 @@ function PlayersContainer() {
   function PlayerGames({ playerId }) {
     const snap = useState();
 
+    const gameList = React.useMemo(() => {
+      return Object.values(snap.games);
+    }, [snap.games]);
+
     return (
       <SimpleGrid columns={[2, 2, 4]} spacing={[2, 2, 4]} color="gray.900" width="full">
-        {snap.games.map(({ id: gameId, name }) => {
+        {gameList.map(({ id: gameId, name }) => {
           return <GameButton key={gameId} gameId={gameId} name={name} playerId={playerId} />;
         })}
       </SimpleGrid>
