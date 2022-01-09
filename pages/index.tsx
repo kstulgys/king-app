@@ -30,6 +30,7 @@ import {
   SimpleGrid,
   Select,
 } from "@chakra-ui/react";
+import Confetti from "react-confetti";
 
 import { proxy, snapshot, useSnapshot } from "valtio";
 
@@ -176,18 +177,28 @@ function useState() {
 
 const Home: React.FC = () => {
   const [isOn, { on, off, toggle }] = useBoolean(false);
-  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(true);
+  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(false);
+  const [{ innerHeight, innerWidth }, setSize] = React.useState({
+    innerWidth: 0,
+    innerHeight: 0,
+  });
+
+  React.useEffect(() => {
+    const { innerHeight, innerWidth } = window;
+    setSize({ innerHeight, innerWidth });
+  }, []);
 
   return (
     <VStack minH="100vh" bg="gray.100" color="white" py={[10, 20]} px={4}>
+      {/* <Confetti width={innerWidth} height={innerHeight} /> */}
       {/* {!isOn && (
         <Heading as="h1" textAlign="center" fontSize={["4xl", "6xl"]}>
           Wellcome to King game
         </Heading>
       )} */}
       <VStack width="full">
-        {/* {!isOn && <Welcome on={on} />}
-        {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />} */}
+        {!isOn && <Welcome on={on} />}
+        {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />}
         {isPlaying && <Game />}
       </VStack>
     </VStack>
@@ -294,7 +305,7 @@ function Statistics() {
           </Stack>
         </Stack>
       ) : (
-        <Box>
+        <Box pt={4}>
           <Text m={0} textAlign="center" fontWeight="bold">
             Select a game
           </Text>
