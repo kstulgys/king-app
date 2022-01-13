@@ -10,17 +10,13 @@ import {
   Stack,
   Button,
   Input,
-  useBoolean,
-  FormLabel,
-  Table,
-  Thead,
-  Tbody,
-  Tfoot,
-  Tr,
-  Th,
-  Td,
-  TableCaption,
-  Grid,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
   Accordion,
   AccordionItem,
   AccordionButton,
@@ -29,6 +25,7 @@ import {
   HStack,
   SimpleGrid,
   Select,
+  useDisclosure,
 } from "@chakra-ui/react";
 import Confetti from "react-confetti";
 
@@ -120,9 +117,11 @@ const state = proxy({
   players: {},
   history: {},
   currentGame: {},
+  currentTurm: {},
   winner: null,
   startTheGame: () => {
     state.isGameStarted = true;
+    state.currentTurm = Object.values(state.players)[0];
   },
   addPlayer: ({ name }) => {
     const id = Date.now();
@@ -162,18 +161,6 @@ const state = proxy({
     state.checkForWinner();
   },
 
-  // const history = {
-  //   playerId:{
-  //     gameId:{}
-  //     gameId:{}
-  //     gameId:{}
-  //   },
-  //   playerId:{
-  //     gameId:{}
-  //     gameId:{}
-  //     gameId:{}
-  //   }
-  // }
   checkForWinner: () => {
     const playersCount = Object.keys(state.players).length;
     const totalPlayedGamesCount = Object.values(state.history).reduce((acc, next) => {
@@ -193,6 +180,14 @@ const state = proxy({
       state.winner = {
         ...winnerData,
       };
+    } else {
+      const keys = Object.keys(state.players);
+      console.log({ keys });
+      const currentIndex = keys.indexOf(state.currentTurm.id);
+      const nextIndex = keys[currentIndex + 1];
+      if (nextIndex) {
+        state.currentTurm = state.players[nextIndex];
+      }
     }
   },
 });
@@ -204,8 +199,6 @@ function useState() {
 const Home: React.FC = () => {
   const snap = useState();
 
-  const [isOn, { on, off, toggle }] = useBoolean(false);
-  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(true);
   const [{ innerHeight, innerWidth }, setSize] = React.useState({
     innerWidth: 0,
     innerHeight: 0,
@@ -219,20 +212,44 @@ const Home: React.FC = () => {
   return (
     <VStack minH="100vh" bg="gray.100" color="gray.900" py={[10, 20]} px={4}>
       {snap.winner && <Confetti width={innerWidth} height={innerHeight} />}
-      {/* {!isOn && (
-        <Heading as="h1" textAlign="center" fontSize={["4xl", "6xl"]}>
-          Wellcome to King game
-        </Heading>
-      )} */}
       <VStack width="full">
-        {/* <PlayersEntry /> */}
-        {/* {!isOn && <Welcome on={on} />} */}
-        {/* {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />}*/}
-        {isPlaying && <Game />}
+        <Game />
+        {snap.winner && <VerticallyCenter />}
       </VStack>
     </VStack>
   );
 };
+
+function VerticallyCenter() {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  React.useEffect(() => {
+    onOpen();
+  }, []);
+
+  return (
+    <>
+      <Button onClick={onOpen}>Trigger modal</Button>
+
+      <Modal onClose={onClose} isOpen={isOpen} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Modal Title</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>hello</Text>
+            <AspectRatio maxW="560px" width="full" ratio={6 / 5} rounded="md" overflow="hidden">
+              <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
+            </AspectRatio>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+}
 
 function PlayerStats({ name, score }) {
   return (
@@ -531,7 +548,7 @@ function PlayersContainer() {
 
     return (
       <Button
-        isDisabled={!!snap.currentGame?.game || !snap.isGameStarted}
+        isDisabled={!!snap.currentGame?.game || !snap.isGameStarted || snap.currentTurm.id !== playerId}
         key={gameId}
         height={[12, 16]}
         fontSize={["sm", "md"]}
