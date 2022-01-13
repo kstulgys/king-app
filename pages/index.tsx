@@ -35,34 +35,34 @@ import Confetti from "react-confetti";
 import { proxy, snapshot, useSnapshot } from "valtio";
 
 const games = {
-  1: {
-    id: 1,
-    name: "Tricks+",
-    each: 12,
-    totalPoints: 120,
-    count: 10,
-  },
-  2: {
-    id: 2,
-    name: "Tricks++",
-    each: 12,
-    totalPoints: 120,
-    count: 10,
-  },
-  3: {
-    id: 3,
-    name: "Tricks-",
-    each: -4,
-    totalPoints: -40,
-    count: 10,
-  },
-  4: {
-    id: 4,
-    name: "Hearts",
-    each: -5,
-    totalPoints: -40,
-    count: 8,
-  },
+  // 1: {
+  //   id: 1,
+  //   name: "Tricks+",
+  //   each: 12,
+  //   totalPoints: 120,
+  //   count: 10,
+  // },
+  // 2: {
+  //   id: 2,
+  //   name: "Tricks++",
+  //   each: 12,
+  //   totalPoints: 120,
+  //   count: 10,
+  // },
+  // 3: {
+  //   id: 3,
+  //   name: "Tricks-",
+  //   each: -4,
+  //   totalPoints: -40,
+  //   count: 10,
+  // },
+  // 4: {
+  //   id: 4,
+  //   name: "Hearts",
+  //   each: -5,
+  //   totalPoints: -40,
+  //   count: 8,
+  // },
   5: {
     id: 5,
     name: "Queens",
@@ -70,51 +70,49 @@ const games = {
     totalPoints: -40,
     count: 4,
   },
-  6: {
-    id: 6,
-    name: "Jacks",
-    each: -10,
-    totalPoints: -40,
-    count: 4,
-  },
-  7: {
-    id: 7,
-    name: "King",
-    each: -40,
-    totalPoints: -40,
-    count: 1,
-  },
-  8: {
-    id: 8,
-    name: "Last 2",
-    each: -20,
-    totalPoints: -40,
-    count: 2,
-  },
+  // 6: {
+  //   id: 6,
+  //   name: "Jacks",
+  //   each: -10,
+  //   totalPoints: -40,
+  //   count: 4,
+  // },
+  // 7: {
+  //   id: 7,
+  //   name: "King",
+  //   each: -40,
+  //   totalPoints: -40,
+  //   count: 1,
+  // },
+  // 8: {
+  //   id: 8,
+  //   name: "Last 2",
+  //   each: -20,
+  //   totalPoints: -40,
+  //   count: 2,
+  // },
 };
 
-const players = {
-  1: {
-    id: 1,
-    name: "Player-1",
-    score: 0,
-    history: [],
-  },
-  2: {
-    id: 2,
-    name: "Player-2",
-    score: 0,
-    history: [],
-  },
-  3: {
-    id: 3,
-    name: "Player-3",
-    score: 0,
-    history: [],
-  },
-};
-
-// const playedGames = [{name:'King', scores:[{name:"Edita", score:100},{name:"Karolis", score:100}]}]
+// const players = {
+//   1: {
+//     id: 1,
+//     name: "Player-1",
+//     score: 0,
+//     history: [],
+//   },
+//   2: {
+//     id: 2,
+//     name: "Player-2",
+//     score: 0,
+//     history: [],
+//   },
+//   3: {
+//     id: 3,
+//     name: "Player-3",
+//     score: 0,
+//     history: [],
+//   },
+// };
 
 const state = proxy({
   isGameStarted: false,
@@ -161,15 +159,41 @@ const state = proxy({
       });
     });
     state.currentGame = {};
+    state.checkForWinner();
   },
-  checkForWinner: () => {
-    // snap.history[playerId][gameId];
-    const historyLength = Object.values(state.history).length;
-    console.log({ historyLength });
-    // const res = false;
-    //  Object.keys(state.players).forEach(()=> {
 
-    //  })
+  // const history = {
+  //   playerId:{
+  //     gameId:{}
+  //     gameId:{}
+  //     gameId:{}
+  //   },
+  //   playerId:{
+  //     gameId:{}
+  //     gameId:{}
+  //     gameId:{}
+  //   }
+  // }
+  checkForWinner: () => {
+    const playersCount = Object.keys(state.players).length;
+    const totalPlayedGamesCount = Object.values(state.history).reduce((acc, next) => {
+      const count = Object.values(next).length;
+      return (acc += count);
+    }, 0);
+
+    const gamesLength = Math.round(playersCount * Object.keys(games).length);
+    const isGameFinished = gamesLength === totalPlayedGamesCount;
+
+    if (isGameFinished) {
+      const winner = Object.values(state.players).sort((a, b) => b.score - a.score);
+      const winnerData = {
+        name: winner[0].name,
+        score: winner[0].score,
+      };
+      state.winner = {
+        ...winnerData,
+      };
+    }
   },
 });
 
@@ -178,6 +202,8 @@ function useState() {
 }
 
 const Home: React.FC = () => {
+  const snap = useState();
+
   const [isOn, { on, off, toggle }] = useBoolean(false);
   const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(true);
   const [{ innerHeight, innerWidth }, setSize] = React.useState({
@@ -192,7 +218,7 @@ const Home: React.FC = () => {
 
   return (
     <VStack minH="100vh" bg="gray.100" color="gray.900" py={[10, 20]} px={4}>
-      {/* <Confetti width={innerWidth} height={innerHeight} /> */}
+      {snap.winner && <Confetti width={innerWidth} height={innerHeight} />}
       {/* {!isOn && (
         <Heading as="h1" textAlign="center" fontSize={["4xl", "6xl"]}>
           Wellcome to King game
@@ -230,17 +256,9 @@ function getCurrentResult({ scores, each }) {
   return Math.round(current);
 }
 
-// const his = {
-//   playerId: {
-//     gameId,
-//   },
-// };
-
 function SelectResult() {
   const snap = useState();
-  React.useEffect(() => {
-    console.log(Object.values(snap.history));
-  }, [snap.history]);
+
   const [scores, setCount] = React.useState({});
 
   const handleSelect = ({ playerId, score }) => {
