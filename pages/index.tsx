@@ -129,10 +129,14 @@ const history = {
 // const playedGames = [{name:'King', scores:[{name:"Edita", score:100},{name:"Karolis", score:100}]}]
 
 const state = proxy({
+  isGameStarted: false,
   games,
   players: {},
   history,
   currentGame: {},
+  startTheGame: () => {
+    state.isGameStarted = true;
+  },
   addPlayer: ({ name }) => {
     const id = Date.now();
     state.players[id] = {
@@ -142,7 +146,7 @@ const state = proxy({
     };
     state.history[id] = {};
   },
-  playGame: ({ gameId, playerId }) => {
+  playSelectedGame: ({ gameId, playerId }) => {
     const foundGame = state.games[gameId];
     const foundPlayer = state.players[playerId];
     // let response = false;
@@ -177,7 +181,7 @@ function useState() {
 
 const Home: React.FC = () => {
   const [isOn, { on, off, toggle }] = useBoolean(false);
-  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(false);
+  const [isPlaying, { on: onPlay, off: onOffPlay }] = useBoolean(true);
   const [{ innerHeight, innerWidth }, setSize] = React.useState({
     innerWidth: 0,
     innerHeight: 0,
@@ -189,7 +193,7 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <VStack minH="100vh" bg="gray.100" color="white" py={[10, 20]} px={4}>
+    <VStack minH="100vh" bg="gray.100" color="gray.900" py={[10, 20]} px={4}>
       {/* <Confetti width={innerWidth} height={innerHeight} /> */}
       {/* {!isOn && (
         <Heading as="h1" textAlign="center" fontSize={["4xl", "6xl"]}>
@@ -197,13 +201,64 @@ const Home: React.FC = () => {
         </Heading>
       )} */}
       <VStack width="full">
-        {!isOn && <Welcome on={on} />}
-        {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />}
+        {/* <PlayersEntry /> */}
+        {/* {!isOn && <Welcome on={on} />} */}
+        {/* {isOn && !isPlaying && <AddPlayers onPlay={onPlay} />}*/}
         {isPlaying && <Game />}
       </VStack>
     </VStack>
   );
 };
+
+// function PlayersEntry() {
+//   const [players, setPlayers] = React.useState({});
+
+//   const onAddPlayer = ({ name }) => {
+//     setPlayers((prev) => ({ ...prev, [new Date().getTime()]: { name } }));
+//   };
+
+//   const isButtonDisabled = React.useMemo(() => {}, []);
+
+//   return (
+//     <Stack p={10} shadow="base" rounded="md" bg="white">
+//       <Stack
+//         spacing={4}
+//         as="form"
+//         onSubmit={(e) => {
+//           e.preventDefault();
+//         }}
+//       >
+//         <PlayerInput label="Player 1 " />
+//         <PlayerInput label="Player 2 " />
+//         <PlayerInput label="Player 3 " />
+//         <PlayerInput label="Player 4 " />
+//         <Button height={16} type="submit">
+//           Play
+//         </Button>
+//       </Stack>
+//     </Stack>
+//   );
+// }
+
+function PlayerInput({ label }) {
+  return (
+    <FormControl id={label}>
+      <FormLabel fontWeight="black">{label}</FormLabel>
+      <Input
+        type="text"
+        placeholder="Enter player name"
+        _placeholder={{
+          color: "gray.400",
+        }}
+        width="full"
+        height={16}
+        fontSize="2xl"
+        fontWeight="black"
+        textAlign="center"
+      />
+    </FormControl>
+  );
+}
 
 function PlayerStats({ name, score }) {
   return (
@@ -316,12 +371,14 @@ function Statistics() {
 }
 
 function Game() {
+  const snap = useState();
+
   return (
     <Stack width="full" spacing={[4]} direction={["column-reverse", "column-reverse", "row"]}>
-      <Box flex={[1, 1, 7]}>
+      <Box flex={snap.isGameStarted ? [1, 1, 7] : 1}>
         <PlayersContainer />
       </Box>
-      <Box flex={[1, 1, 3]}>
+      <Box display={snap.isGameStarted ? "block" : "none"} flex={[1, 1, 3]}>
         <Statistics />
       </Box>
     </Stack>
@@ -330,7 +387,6 @@ function Game() {
 
 function PlayersContainer() {
   const snap = useState();
-  const [name, setName] = React.useState("");
 
   const playerList = React.useMemo(() => {
     return Object.values(snap.players);
@@ -343,13 +399,9 @@ function PlayersContainer() {
     [snap.history],
   );
 
-  const handleAddPlayer = (e) => {
-    snap.addPlayer({ name });
-    setName("");
-  };
-
   return (
     <Stack spacing={4} color="gray.900">
+      {!snap.isGameStarted && <AddPlayerContainer />}
       {playerList.map(({ name, id }) => {
         return (
           <Stack key={id} shadow="base" bg="white" p={4} rounded="md">
@@ -404,14 +456,80 @@ function PlayersContainer() {
           </Stack>
         );
       })}
-      <Stack direction={["column", "column", "row"]}>
-        <Input bg="white" value={name} onChange={(e) => setName(e.target.value)} />
-        <Button colorScheme="pink" onClick={handleAddPlayer}>
-          Add Player
-        </Button>
-      </Stack>
     </Stack>
   );
+
+  function AddPlayerContainer() {
+    const snap = useState();
+
+    const [name, setName] = React.useState("");
+    const ref = React.useRef();
+
+    const handleAddPlayer = ({ name }) => {
+      snap.addPlayer({ name });
+      setName("");
+    };
+
+    const handleInputFocus = () => {
+      ref.current?.focus();
+    };
+
+    React.useEffect(() => {
+      handleInputFocus();
+    }, []);
+
+    const isStartDisabled = React.useMemo(() => {
+      return Object.keys(snap.players).length < 2;
+    }, [snap.players]);
+
+    const isAddDisabled = React.useMemo(() => {
+      return Object.keys(snap.players).length === 4;
+    }, [snap.players]);
+
+    return (
+      <Stack
+        as="form"
+        spacing={4}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!isAddDisabled) {
+            const santized = name.trim();
+            if (santized.length > 0) {
+              handleAddPlayer({ name: santized });
+              handleInputFocus();
+            }
+          }
+        }}
+      >
+        <Input
+          ref={ref}
+          placeholder="Enter player name"
+          height={12}
+          bg="white"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <HStack spacing={4}>
+          <Button type="submit" isDisabled={isAddDisabled} width="full" height={12} bg="white" shadow="base">
+            Add Player
+          </Button>
+          <Button
+            type="submit"
+            isDisabled={isStartDisabled}
+            width="full"
+            height={12}
+            onClick={() => {
+              snap.startTheGame();
+            }}
+            bg="white"
+            shadow="base"
+          >
+            Start the game
+          </Button>
+        </HStack>
+      </Stack>
+    );
+  }
 
   function GameButton({ name, gameId, playerId }) {
     const snap = useState();
@@ -426,7 +544,7 @@ function PlayersContainer() {
         key={gameId}
         height={[12, 16]}
         fontSize={["sm", "md"]}
-        onClick={() => snap.playGame({ playerId, gameId })}
+        onClick={() => snap.playSelectedGame({ playerId, gameId })}
         bg={isPlayed ? "teal.500" : "gray.100"}
         color={isPlayed ? "white" : "gray.900"}
         _hover={{}}
@@ -451,27 +569,6 @@ function PlayersContainer() {
       </SimpleGrid>
     );
   }
-  // return (
-  //   <Accordion allowMultiple>
-  //     {[0, 0, 0, 0].map((_, index) => {
-  //       return (
-  //         <AccordionItem key={index}>
-  //           <h2>
-  //             <AccordionButton>
-  //               <Box flex="1" textAlign="left">
-  //                 Player {index + 1}
-  //               </Box>
-  //               <AccordionIcon />
-  //             </AccordionButton>
-  //           </h2>
-  //           <AccordionPanel py={4} px={0}>
-  //             <PlayerGame />
-  //           </AccordionPanel>
-  //         </AccordionItem>
-  //       );
-  //     })}
-  //   </Accordion>
-  // );
 }
 
 function Welcome({ on }) {
@@ -502,63 +599,43 @@ function Welcome({ on }) {
   );
 }
 
-function AddPlayers({ onPlay }) {
-  const [players, setPlayer] = React.useState([]);
-  const [playerName, setPlayerName] = React.useState("");
+// function AddPlayers({ onPlay }) {
+//   const [players, setPlayer] = React.useState([]);
+//   const [playerName, setPlayerName] = React.useState("");
 
-  const addPlayer = () => {
-    const obj = { name: playerName };
-    setPlayer((prev) => [...prev, obj]);
-  };
+//   const addPlayer = () => {
+//     const obj = { name: playerName };
+//     setPlayer((prev) => [...prev, obj]);
+//   };
 
-  const handlePlay = () => {
-    onPlay();
-  };
-  return (
-    <Stack width="full" spacing={4}>
-      <Stack spacing={4}>
-        <PlayerInput label="Player 1 name" />
-        <PlayerInput label="Player 2 name" />
-        <PlayerInput label="Player 3 name" />
-        <PlayerInput label="Player 4 name" />
-      </Stack>
-      <Box>
-        <Button
-          onClick={handlePlay}
-          fontWeight="black"
-          color="gray.900"
-          width="full"
-          _active={{}}
-          size="lg"
-          colorScheme="teal"
-          height={[12, 16]}
-          px={10}
-        >
-          Play!
-        </Button>
-      </Box>
-    </Stack>
-  );
-}
-
-function PlayerInput({ label }) {
-  return (
-    <FormControl id={label}>
-      <FormLabel fontWeight="black">{label}</FormLabel>
-      <Input
-        type="text"
-        placeholder="Enter player name"
-        _placeholder={{
-          color: "gray.600",
-        }}
-        width="full"
-        height={16}
-        fontSize="2xl"
-        fontWeight="black"
-        textAlign="center"
-      />
-    </FormControl>
-  );
-}
+//   const handlePlay = () => {
+//     onPlay();
+//   };
+//   return (
+//     <Stack width="full" spacing={4}>
+//       <Stack spacing={4}>
+//         <PlayerInput label="Player 1 name" />
+//         <PlayerInput label="Player 2 name" />
+//         <PlayerInput label="Player 3 name" />
+//         <PlayerInput label="Player 4 name" />
+//       </Stack>
+//       <Box>
+//         <Button
+//           onClick={handlePlay}
+//           fontWeight="black"
+//           color="gray.900"
+//           width="full"
+//           _active={{}}
+//           size="lg"
+//           colorScheme="teal"
+//           height={[12, 16]}
+//           px={10}
+//         >
+//           Play!
+//         </Button>
+//       </Box>
+//     </Stack>
+//   );
+// }
 
 export default Home;
