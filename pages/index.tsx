@@ -114,26 +114,15 @@ const players = {
   },
 };
 
-const history = {
-  1: {
-    // [gameId]: {
-    //   gameName: "King",
-    //   orderNo: 1,
-    //   scores: [[playerId]: '1', playerName:"Karolis" score:100]
-    // },
-  },
-  2: {},
-  3: {},
-};
-
 // const playedGames = [{name:'King', scores:[{name:"Edita", score:100},{name:"Karolis", score:100}]}]
 
 const state = proxy({
   isGameStarted: false,
   games,
   players: {},
-  history,
+  history: {},
   currentGame: {},
+  winner: null,
   startTheGame: () => {
     state.isGameStarted = true;
   },
@@ -173,6 +162,15 @@ const state = proxy({
     });
     state.currentGame = {};
   },
+  checkForWinner: () => {
+    // snap.history[playerId][gameId];
+    const historyLength = Object.values(state.history).length;
+    console.log({ historyLength });
+    // const res = false;
+    //  Object.keys(state.players).forEach(()=> {
+
+    //  })
+  },
 });
 
 function useState() {
@@ -210,56 +208,6 @@ const Home: React.FC = () => {
   );
 };
 
-// function PlayersEntry() {
-//   const [players, setPlayers] = React.useState({});
-
-//   const onAddPlayer = ({ name }) => {
-//     setPlayers((prev) => ({ ...prev, [new Date().getTime()]: { name } }));
-//   };
-
-//   const isButtonDisabled = React.useMemo(() => {}, []);
-
-//   return (
-//     <Stack p={10} shadow="base" rounded="md" bg="white">
-//       <Stack
-//         spacing={4}
-//         as="form"
-//         onSubmit={(e) => {
-//           e.preventDefault();
-//         }}
-//       >
-//         <PlayerInput label="Player 1 " />
-//         <PlayerInput label="Player 2 " />
-//         <PlayerInput label="Player 3 " />
-//         <PlayerInput label="Player 4 " />
-//         <Button height={16} type="submit">
-//           Play
-//         </Button>
-//       </Stack>
-//     </Stack>
-//   );
-// }
-
-function PlayerInput({ label }) {
-  return (
-    <FormControl id={label}>
-      <FormLabel fontWeight="black">{label}</FormLabel>
-      <Input
-        type="text"
-        placeholder="Enter player name"
-        _placeholder={{
-          color: "gray.400",
-        }}
-        width="full"
-        height={16}
-        fontSize="2xl"
-        fontWeight="black"
-        textAlign="center"
-      />
-    </FormControl>
-  );
-}
-
 function PlayerStats({ name, score }) {
   return (
     <HStack isInline justifyContent="space-between">
@@ -282,12 +230,20 @@ function getCurrentResult({ scores, each }) {
   return Math.round(current);
 }
 
+// const his = {
+//   playerId: {
+//     gameId,
+//   },
+// };
+
 function SelectResult() {
   const snap = useState();
+  React.useEffect(() => {
+    console.log(Object.values(snap.history));
+  }, [snap.history]);
   const [scores, setCount] = React.useState({});
 
-  const handleSelect = (e) => {
-    const { name: playerId, value: score } = e.target;
+  const handleSelect = ({ playerId, score }) => {
     setCount((prev) => ({ ...prev, [playerId]: +score }));
   };
 
@@ -297,6 +253,18 @@ function SelectResult() {
 
   const isDisabled = currentCount !== snap.currentGame.game.totalPoints;
 
+  React.useEffect(() => {
+    if (!isDisabled) return;
+    const isLastLeft = Math.round(Object.keys(snap.players).length - Object.keys(scores).length) === 1;
+    if (isLastLeft) {
+      const playersIds = Object.keys(snap.players);
+      const playersWithScoresIds = Object.keys(scores);
+      const playerId = playersIds.find((key) => !playersWithScoresIds.includes(key));
+      const score = Math.round((snap.currentGame.game.totalPoints - currentCount) / snap.currentGame.game.each);
+      handleSelect({ playerId, score });
+    }
+  }, [scores, isDisabled, snap.players, currentCount, snap.currentGame]);
+
   const playerList = React.useMemo(() => {
     return Object.values(snap.players);
   }, [snap.players]);
@@ -304,13 +272,18 @@ function SelectResult() {
   return (
     <Stack>
       {playerList.map(({ id, name }) => {
+        const selectedValue = scores?.[id] || 0;
         return (
           <HStack key={id} justifyContent="space-between">
             <Box pr={4}>
               <Text m={0}>{name}</Text>
             </Box>
             <Box width={20}>
-              <Select name={id} onChange={handleSelect}>
+              <Select
+                value={selectedValue}
+                name={id}
+                onChange={(e) => handleSelect({ playerId: e.target.name, score: e.target.value })}
+              >
                 {Array(snap.currentGame.game.count + 1)
                   .fill(null)
                   .map((_, index) => {
@@ -336,7 +309,7 @@ function Statistics() {
   const snap = useState();
 
   const playerList = React.useMemo(() => {
-    return Object.values(snap.players);
+    return Object.values(snap.players).sort((a, b) => b.score - a.score);
   }, [snap.players]);
 
   return (
@@ -471,7 +444,7 @@ function PlayersContainer() {
     };
 
     const handleInputFocus = () => {
-      ref.current?.focus();
+      // ref.current?.focus();
     };
 
     React.useEffect(() => {
@@ -540,7 +513,7 @@ function PlayersContainer() {
 
     return (
       <Button
-        isDisabled={!!snap.currentGame?.game}
+        isDisabled={!!snap.currentGame?.game || !snap.isGameStarted}
         key={gameId}
         height={[12, 16]}
         fontSize={["sm", "md"]}
@@ -548,6 +521,7 @@ function PlayersContainer() {
         bg={isPlayed ? "teal.500" : "gray.100"}
         color={isPlayed ? "white" : "gray.900"}
         _hover={{}}
+        shadow="base"
       >
         {name}
       </Button>
@@ -571,69 +545,30 @@ function PlayersContainer() {
   }
 }
 
-function Welcome({ on }) {
-  return (
-    <Stack width="full" spacing={4}>
-      <AspectRatio maxW="560px" width="full" ratio={6 / 5} rounded="md" overflow="hidden">
-        <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
-      </AspectRatio>
-
-      <Stack maxW="560px" width="full">
-        <Box>
-          <Button
-            onClick={on}
-            fontWeight="black"
-            color="gray.900"
-            width="full"
-            _active={{}}
-            size="lg"
-            colorScheme="teal"
-            height={[12, 16]}
-            px={10}
-          >
-            Start
-          </Button>
-        </Box>
-      </Stack>
-    </Stack>
-  );
-}
-
-// function AddPlayers({ onPlay }) {
-//   const [players, setPlayer] = React.useState([]);
-//   const [playerName, setPlayerName] = React.useState("");
-
-//   const addPlayer = () => {
-//     const obj = { name: playerName };
-//     setPlayer((prev) => [...prev, obj]);
-//   };
-
-//   const handlePlay = () => {
-//     onPlay();
-//   };
+// function Welcome({ on }) {
 //   return (
 //     <Stack width="full" spacing={4}>
-//       <Stack spacing={4}>
-//         <PlayerInput label="Player 1 name" />
-//         <PlayerInput label="Player 2 name" />
-//         <PlayerInput label="Player 3 name" />
-//         <PlayerInput label="Player 4 name" />
+//       <AspectRatio maxW="560px" width="full" ratio={6 / 5} rounded="md" overflow="hidden">
+//         <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
+//       </AspectRatio>
+
+//       <Stack maxW="560px" width="full">
+//         <Box>
+//           <Button
+//             onClick={on}
+//             fontWeight="black"
+//             color="gray.900"
+//             width="full"
+//             _active={{}}
+//             size="lg"
+//             colorScheme="teal"
+//             height={[12, 16]}
+//             px={10}
+//           >
+//             Start
+//           </Button>
+//         </Box>
 //       </Stack>
-//       <Box>
-//         <Button
-//           onClick={handlePlay}
-//           fontWeight="black"
-//           color="gray.900"
-//           width="full"
-//           _active={{}}
-//           size="lg"
-//           colorScheme="teal"
-//           height={[12, 16]}
-//           px={10}
-//         >
-//           Play!
-//         </Button>
-//       </Box>
 //     </Stack>
 //   );
 // }
