@@ -1,11 +1,8 @@
 import React from "react";
 import {
-  Spacer,
-  FormControl,
   Box,
   VStack,
   Text,
-  Heading,
   AspectRatio,
   Stack,
   Button,
@@ -29,37 +26,37 @@ import {
 } from "@chakra-ui/react";
 import Confetti from "react-confetti";
 
-import { proxy, snapshot, useSnapshot } from "valtio";
+import { proxy, useSnapshot } from "valtio";
 
 const games = {
-  // 1: {
-  //   id: 1,
-  //   name: "Tricks+",
-  //   each: 12,
-  //   totalPoints: 120,
-  //   count: 10,
-  // },
-  // 2: {
-  //   id: 2,
-  //   name: "Tricks++",
-  //   each: 12,
-  //   totalPoints: 120,
-  //   count: 10,
-  // },
-  // 3: {
-  //   id: 3,
-  //   name: "Tricks-",
-  //   each: -4,
-  //   totalPoints: -40,
-  //   count: 10,
-  // },
-  // 4: {
-  //   id: 4,
-  //   name: "Hearts",
-  //   each: -5,
-  //   totalPoints: -40,
-  //   count: 8,
-  // },
+  1: {
+    id: 1,
+    name: "Tricks+",
+    each: 12,
+    totalPoints: 120,
+    count: 10,
+  },
+  2: {
+    id: 2,
+    name: "Tricks++",
+    each: 12,
+    totalPoints: 120,
+    count: 10,
+  },
+  3: {
+    id: 3,
+    name: "Tricks-",
+    each: -4,
+    totalPoints: -40,
+    count: 10,
+  },
+  4: {
+    id: 4,
+    name: "Hearts",
+    each: -5,
+    totalPoints: -40,
+    count: 8,
+  },
   5: {
     id: 5,
     name: "Queens",
@@ -67,49 +64,28 @@ const games = {
     totalPoints: -40,
     count: 4,
   },
-  // 6: {
-  //   id: 6,
-  //   name: "Jacks",
-  //   each: -10,
-  //   totalPoints: -40,
-  //   count: 4,
-  // },
-  // 7: {
-  //   id: 7,
-  //   name: "King",
-  //   each: -40,
-  //   totalPoints: -40,
-  //   count: 1,
-  // },
-  // 8: {
-  //   id: 8,
-  //   name: "Last 2",
-  //   each: -20,
-  //   totalPoints: -40,
-  //   count: 2,
-  // },
+  6: {
+    id: 6,
+    name: "Jacks",
+    each: -10,
+    totalPoints: -40,
+    count: 4,
+  },
+  7: {
+    id: 7,
+    name: "King",
+    each: -40,
+    totalPoints: -40,
+    count: 1,
+  },
+  8: {
+    id: 8,
+    name: "Last 2",
+    each: -20,
+    totalPoints: -40,
+    count: 2,
+  },
 };
-
-// const players = {
-//   1: {
-//     id: 1,
-//     name: "Player-1",
-//     score: 0,
-//     history: [],
-//   },
-//   2: {
-//     id: 2,
-//     name: "Player-2",
-//     score: 0,
-//     history: [],
-//   },
-//   3: {
-//     id: 3,
-//     name: "Player-3",
-//     score: 0,
-//     history: [],
-//   },
-// };
 
 const state = proxy({
   isGameStarted: false,
@@ -121,7 +97,7 @@ const state = proxy({
   winner: null,
   startTheGame: () => {
     state.isGameStarted = true;
-    state.currentTurm = Object.values(state.players)[0];
+    // state.currentTurm = Object.values(state.players)[0];
   },
   addPlayer: ({ name }) => {
     const id = Date.now();
@@ -136,12 +112,14 @@ const state = proxy({
     const foundGame = state.games[gameId];
     const foundPlayer = state.players[playerId];
     // let response = false;
-    // if (window.confirm(`${foundPlayer.name} will play ${foundGame.name}`. Do you wish to continue?)) {
+
+    // if (window.confirm(`${foundPlayer.name} will play ${foundGame.name}. Do you wish to continue?`)) {
     //   response = true;
     // } else {
     //   response = false;
     // }
     // if (!response) return;
+    state.currentTurm = state.players[playerId];
     state.currentGame = { game: foundGame, player: foundPlayer };
     const orderNo = Object.values(state.history[playerId]).length + 1;
     state.history[playerId][gameId] = { gameName: foundGame.name, orderNo, scores: [] };
@@ -160,10 +138,9 @@ const state = proxy({
     state.currentGame = {};
     state.checkForWinner();
   },
-
   checkForWinner: () => {
     const playersCount = Object.keys(state.players).length;
-    const totalPlayedGamesCount = Object.values(state.history).reduce((acc, next) => {
+    const totalPlayedGamesCount = Object.values(state.history).reduce((acc: number, next: number) => {
       const count = Object.values(next).length;
       return (acc += count);
     }, 0);
@@ -172,21 +149,25 @@ const state = proxy({
     const isGameFinished = gamesLength === totalPlayedGamesCount;
 
     if (isGameFinished) {
-      const winner = Object.values(state.players).sort((a, b) => b.score - a.score);
+      const winner = Object.values(state.players).sort(
+        (a: { score: number }, b: { score: number }) => b.score - a.score,
+      ) as { name: string; score: number }[];
+
       const winnerData = {
         name: winner[0].name,
         score: winner[0].score,
       };
-      state.winner = {
-        ...winnerData,
-      };
+      state.winner = { ...winnerData };
     } else {
       const keys = Object.keys(state.players);
-      console.log({ keys });
-      const currentIndex = keys.indexOf(state.currentTurm.id);
+
+      const currentIndex = keys.indexOf(String(state.currentTurm.id));
       const nextIndex = keys[currentIndex + 1];
+
       if (nextIndex) {
         state.currentTurm = state.players[nextIndex];
+      } else {
+        state.currentTurm = state.players[keys[0]];
       }
     }
   },
@@ -222,6 +203,7 @@ const Home: React.FC = () => {
 
 function VerticallyCenter() {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const snap = useState();
 
   React.useEffect(() => {
     onOpen();
@@ -230,21 +212,16 @@ function VerticallyCenter() {
   return (
     <>
       <Button onClick={onOpen}>Trigger modal</Button>
-
       <Modal onClose={onClose} isOpen={isOpen} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Modal Title</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>hello</Text>
+            <Text>{snap?.winner.name}</Text>
             <AspectRatio maxW="560px" width="full" ratio={6 / 5} rounded="md" overflow="hidden">
               <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
             </AspectRatio>
           </ModalBody>
-          <ModalFooter>
-            <Button onClick={onClose}>Close</Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
     </>
@@ -266,7 +243,7 @@ function PlayerStats({ name, score }) {
 
 function getCurrentResult({ scores, each }) {
   const current =
-    Object.values(scores).reduce((acc, next) => {
+    Object.values(scores as number[]).reduce((acc, next) => {
       return (acc += next);
     }, 0) * each;
 
@@ -542,13 +519,18 @@ function PlayersContainer() {
   function GameButton({ name, gameId, playerId }) {
     const snap = useState();
 
-    const isPlayed = React.useMemo(() => {
-      return snap.history[playerId][gameId];
-    }, [snap.history, gameId, playerId]);
+    const isPlayed = !!snap.history[playerId][gameId];
+
+    const shouldBeDisabled = React.useMemo(() => {
+      if (!snap.isGameStarted) return true;
+      const isFirstToPlay = Object.keys(snap.currentTurm).length === 0;
+      if (isFirstToPlay) return false;
+      return isPlayed || String(snap.currentTurm?.id) !== String(playerId);
+    }, [isPlayed, snap.isGameStarted, snap.currentTurm, playerId]);
 
     return (
       <Button
-        isDisabled={!!snap.currentGame?.game || !snap.isGameStarted || snap.currentTurm.id !== playerId}
+        isDisabled={shouldBeDisabled}
         key={gameId}
         height={[12, 16]}
         fontSize={["sm", "md"]}
