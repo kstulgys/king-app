@@ -10,8 +10,6 @@ import {
   Modal,
   ModalOverlay,
   ModalContent,
-  ModalHeader,
-  ModalFooter,
   ModalBody,
   ModalCloseButton,
   Accordion,
@@ -97,7 +95,6 @@ const state = proxy({
   winner: null,
   startTheGame: () => {
     state.isGameStarted = true;
-    // state.currentTurm = Object.values(state.players)[0];
   },
   addPlayer: ({ name }) => {
     const id = Date.now();
@@ -111,14 +108,14 @@ const state = proxy({
   playSelectedGame: ({ gameId, playerId }) => {
     const foundGame = state.games[gameId];
     const foundPlayer = state.players[playerId];
-    // let response = false;
+    let response = false;
 
-    // if (window.confirm(`${foundPlayer.name} will play ${foundGame.name}. Do you wish to continue?`)) {
-    //   response = true;
-    // } else {
-    //   response = false;
-    // }
-    // if (!response) return;
+    if (window.confirm(`${foundPlayer.name} will play ${foundGame.name}. Do you wish to continue?`)) {
+      response = true;
+    } else {
+      response = false;
+    }
+    if (!response) return;
     state.currentTurm = state.players[playerId];
     state.currentGame = { game: foundGame, player: foundPlayer };
     const orderNo = Object.values(state.history[playerId]).length + 1;
@@ -190,6 +187,12 @@ const Home: React.FC = () => {
     setSize({ innerHeight, innerWidth });
   }, []);
 
+  React.useEffect(() => {
+    window.onbeforeunload = () => {
+      return "";
+    };
+  }, []);
+
   return (
     <VStack minH="100vh" bg="gray.100" color="gray.900" py={[10, 20]} px={4}>
       {snap.winner && <Confetti width={innerWidth} height={innerHeight} />}
@@ -212,13 +215,17 @@ function VerticallyCenter() {
   return (
     <>
       <Button onClick={onOpen}>Trigger modal</Button>
-      <Modal onClose={onClose} isOpen={isOpen} isCentered>
+      <Modal onClose={onClose} isOpen={isOpen} isCentered size="lg">
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent rounded="2xl" overflow="hidden">
           <ModalCloseButton />
-          <ModalBody>
-            <Text>{snap?.winner.name}</Text>
-            <AspectRatio maxW="560px" width="full" ratio={6 / 5} rounded="md" overflow="hidden">
+          <ModalBody p={0}>
+            <Box py={4}>
+              <Text textAlign="center" fontSize="2xl" fontWeight="bold">
+                Congrats {snap?.winner?.name} !
+              </Text>
+            </Box>
+            <AspectRatio maxW="560px" width="full" ratio={6 / 5} overflow="hidden">
               <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
             </AspectRatio>
           </ModalBody>
@@ -402,7 +409,7 @@ function PlayersContainer() {
                   <AccordionButton>
                     <Box flex="1" textAlign="left">
                       <Text m={0} fontSize="sm">
-                        Played games stats
+                        Played games
                       </Text>
                     </Box>
                     <AccordionIcon />
@@ -456,7 +463,7 @@ function PlayersContainer() {
     };
 
     const handleInputFocus = () => {
-      // ref.current?.focus();
+      ref.current?.focus();
     };
 
     React.useEffect(() => {
@@ -473,6 +480,9 @@ function PlayersContainer() {
 
     return (
       <Stack
+        maxW="lg"
+        width="full"
+        mx="auto"
         as="form"
         spacing={4}
         onSubmit={(e) => {
