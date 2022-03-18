@@ -11,12 +11,17 @@ import {
   Select,
   useBoolean,
   Input,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from "@chakra-ui/react";
 import { useStore } from "../hooks/useStore";
-import { percentToValue } from "@chakra-ui/utils";
 
 export default function App() {
   const { players, hasStarted } = useStore();
+
   return (
     <Box bg="gray.100" minH="100vh" height="full">
       {!hasStarted ? (
@@ -143,8 +148,53 @@ function PlayerBoard({ id: playerId, name }) {
             );
           })}
         </SimpleGrid>
+        <HistoryAccordion id={playerId} />
       </Stack>
     </Stack>
+  );
+}
+
+function HistoryAccordion({ id }) {
+  const { history, players } = useStore();
+
+  const games = React.useMemo(() => {
+    const playerHistory = Object.values(history[id] || {}) as { [key: string]: { [key: string]: number } }[];
+    return playerHistory.reduce((acc, { game, scores }) => {
+      const a = [game.name, ...Object.values(scores)];
+      acc.push(a);
+      return acc;
+    }, []) as string[][];
+  }, [history]);
+
+  return (
+    <Accordion allowToggle>
+      <AccordionItem>
+        <h2>
+          <AccordionButton>
+            <Box flex="1" textAlign="left">
+              History
+            </Box>
+            <AccordionIcon />
+          </AccordionButton>
+        </h2>
+        <AccordionPanel pb={4}>
+          <SimpleGrid columns={Object.keys(players).length + 1}>
+            <Text fontWeight="medium"></Text>
+            {Object.values(players).map(({ name }) => {
+              return <Text textAlign="center">{name}</Text>;
+            })}
+          </SimpleGrid>
+          <SimpleGrid columns={Object.keys(players).length + 1}>
+            {games.map((row: string[]) => {
+              return (
+                row.length > 1 &&
+                row.map((value, index) => <Text textAlign={index === 0 ? "left" : "center"}>{value}</Text>)
+              );
+            })}
+          </SimpleGrid>
+        </AccordionPanel>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
@@ -208,11 +258,20 @@ function Stats() {
 }
 
 function GaneSciores() {
-  const { players, isScoreTableAvailable, onSubmitCurrentGame, currentGame } = useStore();
+  const { players, history, isScoreTableAvailable, onSubmitCurrentGame, currentGame } = useStore();
   const [playersTricks, setPlayersTricks] = React.useState<{ [key: string]: number }>({});
+
+  React.useEffect(() => {
+    const initial = Object.entries(players).reduce((acc, [key]) => {
+      acc[key] = 0;
+      return acc;
+    }, {});
+    setPlayersTricks(initial);
+  }, [history]);
+
   const [canSubmit, { on, off }] = useBoolean(false);
 
-  const handleSetScores = (key, value) => {
+  const handleSetScores = (key, value: number) => {
     setPlayersTricks((prev) => ({ ...prev, [key]: value }));
   };
 

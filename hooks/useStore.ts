@@ -105,7 +105,7 @@ const state = proxy({
     state.isScoreTableAvailable = true;
   },
   onSubmitCurrentGame: (scores: { [key: string]: number }) => {
-    state.history[state.currentGame.player.id][state.currentGame.game.id] = { ...scores };
+    state.history[state.currentGame.player.id][state.currentGame.game.id].scores = { ...scores };
     Object.entries(scores).forEach(([key, value]) => {
       state.players[key].score += value;
     });
