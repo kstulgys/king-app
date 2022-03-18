@@ -1,634 +1,280 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import {
-  Box,
-  VStack,
-  Text,
-  AspectRatio,
+  FormControl,
+  FormLabel,
   Stack,
+  Text,
+  Box,
   Button,
-  Input,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalBody,
-  ModalCloseButton,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
-  HStack,
   SimpleGrid,
+  HStack,
   Select,
-  useDisclosure,
+  useBoolean,
+  Input,
 } from "@chakra-ui/react";
-import Confetti from "react-confetti";
+import { useStore } from "../hooks/useStore";
+import { percentToValue } from "@chakra-ui/utils";
 
-import { proxy, useSnapshot } from "valtio";
+export default function App() {
+  const { players, hasStarted } = useStore();
+  return (
+    <Box bg="gray.100" minH="100vh" height="full">
+      {!hasStarted ? (
+        <AddPlayers />
+      ) : (
+        <Stack direction={["column-reverse", "column-reverse", "row"]} p={4} spacing={6}>
+          <Stack width={["full", "full", "70%"]} spacing={[6, 6, 8]}>
+            {Object.values(players).map((p) => (
+              <PlayerBoard key={p.id} {...p} />
+            ))}
+          </Stack>
+          <Stack width={["full", "full", "30%"]}>
+            <Stats />
+          </Stack>
+        </Stack>
+      )}
+    </Box>
+  );
+}
 
-const games = {
-  1: {
-    id: 1,
-    name: "Tricks+",
-    each: 12,
-    totalPoints: 120,
-    count: 10,
-  },
-  2: {
-    id: 2,
-    name: "Tricks++",
-    each: 12,
-    totalPoints: 120,
-    count: 10,
-  },
-  3: {
-    id: 3,
-    name: "Tricks-",
-    each: -4,
-    totalPoints: -40,
-    count: 10,
-  },
-  4: {
-    id: 4,
-    name: "Hearts",
-    each: -5,
-    totalPoints: -40,
-    count: 8,
-  },
-  5: {
-    id: 5,
-    name: "Queens",
-    each: -10,
-    totalPoints: -40,
-    count: 4,
-  },
-  6: {
-    id: 6,
-    name: "Jacks",
-    each: -10,
-    totalPoints: -40,
-    count: 4,
-  },
-  7: {
-    id: 7,
-    name: "King",
-    each: -40,
-    totalPoints: -40,
-    count: 1,
-  },
-  8: {
-    id: 8,
-    name: "Last 2",
-    each: -20,
-    totalPoints: -40,
-    count: 2,
-  },
-};
+function AddPlayers() {
+  const { onStartGame } = useStore();
+  const [players, setPlayers] = React.useState<{ [key: string]: string }>({});
 
-const state = proxy({
-  isGameStarted: false,
-  games,
-  players: {},
-  history: {},
-  currentGame: {},
-  currentTurm: {},
-  winner: null,
-  startTheGame: () => {
-    state.isGameStarted = true;
-  },
-  addPlayer: ({ name }) => {
-    const id = Date.now();
-    state.players[id] = {
-      id,
-      name,
-      score: 0,
-    };
-    state.history[id] = {};
-  },
-  playSelectedGame: ({ gameId, playerId }) => {
-    const foundGame = state.games[gameId];
-    const foundPlayer = state.players[playerId];
-    let response = false;
+  const canSubmit = Object.keys(players).length > 2;
 
-    if (window.confirm(`${foundPlayer.name} will play ${foundGame.name}. Do you wish to continue?`)) {
-      response = true;
+  const onPlayerNameChange = (e) => {
+    const { id, value } = e.target;
+    const state = { ...players };
+    if (!value) {
+      delete state[id];
     } else {
-      response = false;
+      state[id] = value;
     }
-    if (!response) return;
-    state.currentTurm = state.players[playerId];
-    state.currentGame = { game: foundGame, player: foundPlayer };
-    const orderNo = Object.values(state.history[playerId]).length + 1;
-    state.history[playerId][gameId] = { gameName: foundGame.name, orderNo, scores: [] };
-  },
-  submitGame: ({ scores, gameId }) => {
-    const playerIds = Object.keys(state.players);
-    playerIds.forEach((playerId) => {
-      const score = scores[playerId] || 0;
-      // @ts-ignore
-      state.players[playerId].score += Math.round(score * state.currentGame.game.each);
-      // @ts-ignore
-      state.history[state.currentGame.player.id][gameId].scores.push({
-        id: playerId,
-        playerName: state.players[playerId].name,
-        score,
-      });
-    });
-    state.currentGame = {};
-    state.checkForWinner();
-  },
-  checkForWinner: () => {
-    const playersCount = Object.keys(state.players).length;
-    const totalPlayedGamesCount = Object.values(state.history).reduce((acc: number, next: number) => {
-      const count = Object.values(next).length;
-      return (acc += count);
-    }, 0);
-
-    const gamesLength = Math.round(playersCount * Object.keys(games).length);
-    const isGameFinished = gamesLength === totalPlayedGamesCount;
-
-    if (isGameFinished) {
-      const winner = Object.values(state.players).sort(
-        (a: { score: number }, b: { score: number }) => b.score - a.score,
-      ) as { name: string; score: number }[];
-
-      const winnerData = {
-        name: winner[0].name,
-        score: winner[0].score,
-      };
-      state.winner = { ...winnerData };
-    } else {
-      const keys = Object.keys(state.players);
-      // @ts-ignore
-
-      const currentIndex = keys.indexOf(String(state.currentTurm.id));
-      const nextIndex = keys[currentIndex + 1];
-
-      if (nextIndex) {
-        state.currentTurm = state.players[nextIndex];
-      } else {
-        state.currentTurm = state.players[keys[0]];
-      }
-    }
-  },
-});
-
-function useState() {
-  return useSnapshot(state);
-}
-
-const Home: React.FC = () => {
-  const snap = useState();
-
-  const [{ innerHeight, innerWidth }, setSize] = React.useState({
-    innerWidth: 0,
-    innerHeight: 0,
-  });
-
-  React.useEffect(() => {
-    const { innerHeight, innerWidth } = window;
-    setSize({ innerHeight, innerWidth });
-  }, []);
-
-  React.useEffect(() => {
-    window.onbeforeunload = () => {
-      return "";
-    };
-  }, []);
-
-  return (
-    <VStack minH="100vh" bg="gray.100" color="gray.900" py={[10, 20]} px={4}>
-      {snap.winner && <Confetti width={innerWidth} height={innerHeight} />}
-      <VStack width="full">
-        <Game />
-        {snap.winner && <VerticallyCenter />}
-      </VStack>
-    </VStack>
-  );
-};
-
-function VerticallyCenter() {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const snap = useState();
-
-  React.useEffect(() => {
-    onOpen();
-  }, []);
-
-  return (
-    <>
-      <Button onClick={onOpen}>Trigger modal</Button>
-      <Modal onClose={onClose} isOpen={isOpen} isCentered size="lg">
-        <ModalOverlay />
-        <ModalContent rounded="2xl" overflow="hidden">
-          <ModalCloseButton />
-          <ModalBody p={0}>
-            <Box py={4}>
-              <Text textAlign="center" fontSize="2xl" fontWeight="bold">
-                Congrats {snap?.winner?.name} !
-              </Text>
-            </Box>
-            <AspectRatio maxW="560px" width="full" ratio={6 / 5} overflow="hidden">
-              <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
-            </AspectRatio>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    </>
-  );
-}
-
-function PlayerStats({ name, score }) {
-  return (
-    <HStack isInline justifyContent="space-between">
-      <Box>
-        <Text m={0}>{name}</Text>
-      </Box>
-      <Box>
-        <Text m={0}>{score}</Text>
-      </Box>
-    </HStack>
-  );
-}
-
-function getCurrentResult({ scores, each }) {
-  const current =
-    Object.values(scores as number[]).reduce((acc, next) => {
-      return (acc += next);
-    }, 0) * each;
-
-  return Math.round(current);
-}
-
-function SelectResult() {
-  const snap = useState();
-
-  const [scores, setCount] = React.useState({});
-
-  const handleSelect = ({ playerId, score }) => {
-    setCount((prev) => ({ ...prev, [playerId]: +score }));
+    setPlayers(state);
   };
 
-  const currentCount = React.useMemo(() => {
-    // @ts-ignore
-
-    return getCurrentResult({ scores, each: snap.currentGame.game.each });
-    // @ts-ignore
-  }, [scores, snap.currentGame.game.each]);
-  // @ts-ignore
-
-  const isDisabled = currentCount !== snap.currentGame.game.totalPoints;
-
-  React.useEffect(() => {
-    if (!isDisabled) return;
-    const isLastLeft = Math.round(Object.keys(snap.players).length - Object.keys(scores).length) === 1;
-    if (isLastLeft) {
-      const playersIds = Object.keys(snap.players);
-      const playersWithScoresIds = Object.keys(scores);
-      const playerId = playersIds.find((key) => !playersWithScoresIds.includes(key));
-      // @ts-ignore
-
-      const score = Math.round((snap.currentGame.game.totalPoints - currentCount) / snap.currentGame.game.each);
-      handleSelect({ playerId, score });
-    }
-  }, [scores, isDisabled, snap.players, currentCount, snap.currentGame]);
-
-  const playerList = React.useMemo(() => {
-    return Object.values(snap.players);
-  }, [snap.players]);
+  const handleSartGame = () => {
+    const validatedPlayers = Object.entries(players).reduce((acc, [key, value]) => {
+      if (value.trim()) acc[key] = value.trim();
+      return acc;
+    }, {});
+    onStartGame(validatedPlayers);
+  };
 
   return (
     <Stack>
-      {playerList.map(({ id, name }) => {
-        const selectedValue = scores?.[id] || 0;
-        return (
-          <HStack key={id} justifyContent="space-between">
-            <Box pr={4}>
-              <Text m={0}>{name}</Text>
-            </Box>
-            <Box width={20}>
-              <Select
-                value={selectedValue}
-                name={id}
-                onChange={(e) => handleSelect({ playerId: e.target.name, score: e.target.value })}
-              >
-                {/* @ts-ignore */}
-
-                {Array(snap.currentGame.game.count + 1)
-                  .fill(null)
-                  .map((_, index) => {
-                    return (
-                      <option key={index} value={index}>
-                        {index}
-                      </option>
-                    );
-                  })}
-              </Select>
-            </Box>
-          </HStack>
-        );
-      })}
-
-      {/* @ts-ignore */}
-
-      <Button isDisabled={isDisabled} onClick={() => snap.submitGame({ scores, gameId: snap.currentGame.game.id })}>
-        {/* @ts-ignore */}
-        Submit {currentCount}/{snap.currentGame.game.totalPoints}
-      </Button>
+      <Stack mx="auto" pt={20}>
+        <Text fontWeight="bold" textTransform="uppercase">
+          Players
+        </Text>
+        <Stack bg="white" rounded="md" p={4} shadow="base" minW="xs" width="full">
+          <FormControl>
+            <FormLabel fontSize="sm" htmlFor="1">
+              Name
+            </FormLabel>
+            <Input id="1" size="lg" onChange={onPlayerNameChange} />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontSize="sm" htmlFor="2">
+              Name
+            </FormLabel>
+            <Input id="2" size="lg" onChange={onPlayerNameChange} />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontSize="sm" htmlFor="3">
+              Name
+            </FormLabel>
+            <Input id="3" size="lg" onChange={onPlayerNameChange} />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontSize="sm" htmlFor="1">
+              Name
+            </FormLabel>
+            <Input id="4" size="lg" onChange={onPlayerNameChange} />
+          </FormControl>
+          <Box pt={2}>
+            <Button
+              bg="gray.900"
+              _hover={{}}
+              color="white"
+              onClick={handleSartGame}
+              isDisabled={!canSubmit}
+              w="full"
+              size="lg"
+            >
+              Start the game
+            </Button>
+          </Box>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }
 
-function Statistics() {
-  const snap = useState();
+function PlayerBoard({ id: playerId, name }) {
+  const { games, history, onPlaySelectedGame, currentGame } = useStore();
+  return (
+    <Stack>
+      <Text fontWeight="bold" fontSize="sm">
+        {name}
+      </Text>
+      <Stack bg="white" rounded="md" p={4} shadow="base">
+        <SimpleGrid columns={[3, 3, 4]} spacing={4}>
+          {Object.values(games).map(({ id, name }) => {
+            const isPlayed = !!history?.[playerId]?.[id];
+            const hasNotStarted = !currentGame;
+            const isPlaying = !!currentGame?.game;
+            const isDisabled = isPlaying || isPlayed || playerId !== currentGame?.player.id;
+            return (
+              <Box key={id}>
+                <Button
+                  bg={isPlayed ? "gray.900" : "gray.200"}
+                  color={isPlayed ? "white" : "gray.900"}
+                  onClick={() => onPlaySelectedGame(id, playerId)}
+                  isDisabled={hasNotStarted ? false : isDisabled}
+                  width="full"
+                  cursor={isPlayed ? "not-allowed" : "pan"}
+                  _hover={{}}
+                >
+                  {name}
+                </Button>
+              </Box>
+            );
+          })}
+        </SimpleGrid>
+      </Stack>
+    </Stack>
+  );
+}
 
-  const playerList = React.useMemo(() => {
-    // @ts-ignore
-
-    return Object.values(snap.players).sort((a, b) => b.score - a.score);
-  }, [snap.players]);
+function Stats() {
+  const { players, currentGame, onFinishCurrentGame } = useStore();
 
   return (
-    <Stack p={4} shadow="base" bg="white" rounded="md" color="gray.900" width="full">
-      <Text fontWeight="black">Stats</Text>
+    <Stack>
       <Stack spacing={4}>
-        {playerList.map((player) => {
-          // @ts-ignore
-
-          return <PlayerStats key={player.id} {...player} />;
-        })}
-      </Stack>
-      {/* @ts-ignore */}
-
-      {snap.currentGame?.game ? (
-        <Stack spacing={4}>
-          <Stack>
-            <Text m={0} textAlign="center">
-              Current game
-            </Text>
-            <Text m={0} textAlign="center">
-              {/* @ts-ignore */}
-              {snap.currentGame.game.name} (by {snap.currentGame.player.name})
-            </Text>
-            <SelectResult />
+        <Stack>
+          <Text fontWeight="bold" fontSize="sm">
+            Current Game
+          </Text>
+          <Stack bg="white" rounded="md" p={4} shadow="base">
+            {currentGame?.game ? (
+              <Text>
+                <Box as="span" fontWeight="bold">
+                  {currentGame.game.name}
+                </Box>{" "}
+                by{" "}
+                <Box as="span" fontWeight="bold">
+                  {currentGame.player.name}
+                </Box>
+              </Text>
+            ) : (
+              <Text>
+                Waiting for{" "}
+                <Box as="span" fontWeight="bold">
+                  {currentGame?.player?.name ?? `...`}
+                </Box>
+              </Text>
+            )}
+            <Box>
+              <Button isDisabled={!currentGame?.game} w="full" onClick={onFinishCurrentGame}>
+                Finish
+              </Button>
+            </Box>
           </Stack>
         </Stack>
-      ) : (
-        <Box pt={4}>
-          <Text m={0} textAlign="center" fontWeight="bold">
-            Select a game
+        <GaneSciores />
+        <Stack>
+          <Text fontWeight="bold" fontSize="sm">
+            Stats
           </Text>
-        </Box>
-      )}
-    </Stack>
-  );
-}
-
-function Game() {
-  const snap = useState();
-
-  return (
-    <Stack width="full" spacing={[4]} direction={["column-reverse", "column-reverse", "row"]}>
-      <Box flex={snap.isGameStarted ? [1, 1, 7] : 1}>
-        <PlayersContainer />
-      </Box>
-      <Box display={snap.isGameStarted ? "block" : "none"} flex={[1, 1, 3]}>
-        <Statistics />
-      </Box>
-    </Stack>
-  );
-}
-
-function PlayersContainer() {
-  const snap = useState();
-
-  const playerList = React.useMemo(() => {
-    return Object.values(snap.players);
-  }, [snap.players]);
-
-  const getHistory = React.useCallback(
-    ({ id }) => {
-      return Object.values(snap.history[id]);
-    },
-    [snap.history],
-  );
-
-  return (
-    <Stack spacing={4} color="gray.900">
-      {!snap.isGameStarted && <AddPlayerContainer />}
-      {playerList.map(({ name, id }) => {
-        return (
-          <Stack key={id} shadow="base" bg="white" p={4} rounded="md">
-            <Box flex="1" textAlign="left">
-              <Text mb={1} fontWeight="black" textAlign="center">
-                {name}
-              </Text>
-            </Box>
-            <PlayerGames playerId={id} />
-            <Accordion allowMultiple>
-              <AccordionItem>
-                <h2>
-                  <AccordionButton>
-                    <Box flex="1" textAlign="left">
-                      <Text m={0} fontSize="sm">
-                        Played games
-                      </Text>
-                    </Box>
-                    <AccordionIcon />
-                  </AccordionButton>
-                </h2>
-                <AccordionPanel>
-                  <SimpleGrid columns={playerList.length + 1}>
-                    <Box></Box>
-                    {playerList.map(({ name, id }) => {
-                      return (
-                        <Box key={id}>
-                          <Text textAlign="center">{name}</Text>
-                        </Box>
-                      );
-                    })}
-                  </SimpleGrid>
-                  {getHistory({ id }).map((item) => {
-                    return (
-                      // @ts-ignore
-
-                      <SimpleGrid key={item.gameName} columns={playerList.length + 1}>
-                        <Box>
-                          {/* @ts-ignore */}
-
-                          <Text>{item.gameName}</Text>
-                        </Box>
-                        {/* @ts-ignore */}
-
-                        {item.scores.map(({ playerName, score }) => {
-                          return (
-                            <Box key={playerName}>
-                              <Text textAlign="center">{score}</Text>
-                            </Box>
-                          );
-                        })}
-                      </SimpleGrid>
-                    );
-                  })}
-                </AccordionPanel>
-              </AccordionItem>
-            </Accordion>
+          <Stack bg="white" rounded="md" p={4} shadow="base">
+            {Object.values(players)
+              .sort((a, b) => b.score - a.score)
+              .map(({ name, score }) => {
+                return (
+                  <HStack justifyContent="space-between">
+                    <Text>{name}:</Text>
+                    <Text>{score}</Text>
+                  </HStack>
+                );
+              })}
           </Stack>
-        );
-      })}
+        </Stack>
+      </Stack>
     </Stack>
   );
-
-  function AddPlayerContainer() {
-    const snap = useState();
-
-    const [name, setName] = React.useState("");
-    const ref = React.useRef();
-
-    const handleAddPlayer = ({ name }) => {
-      snap.addPlayer({ name });
-      setName("");
-    };
-
-    const handleInputFocus = () => {
-      // @ts-ignore
-      ref.current?.focus();
-    };
-
-    React.useEffect(() => {
-      handleInputFocus();
-    }, []);
-
-    const isStartDisabled = React.useMemo(() => {
-      return Object.keys(snap.players).length < 2;
-    }, [snap.players]);
-
-    const isAddDisabled = React.useMemo(() => {
-      return Object.keys(snap.players).length === 4;
-    }, [snap.players]);
-
-    return (
-      <Stack
-        maxW="lg"
-        width="full"
-        mx="auto"
-        as="form"
-        spacing={4}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!isAddDisabled) {
-            const santized = name.trim();
-            if (santized.length > 0) {
-              handleAddPlayer({ name: santized });
-              handleInputFocus();
-            }
-          }
-        }}
-      >
-        <Input
-          ref={ref}
-          placeholder="Enter player name"
-          height={12}
-          bg="white"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <HStack spacing={4}>
-          <Button type="submit" isDisabled={isAddDisabled} width="full" height={12} bg="white" shadow="base">
-            Add Player
-          </Button>
-          <Button
-            type="submit"
-            isDisabled={isStartDisabled}
-            width="full"
-            height={12}
-            onClick={() => {
-              snap.startTheGame();
-            }}
-            bg="white"
-            shadow="base"
-          >
-            Start the game
-          </Button>
-        </HStack>
-      </Stack>
-    );
-  }
-
-  function GameButton({ name, gameId, playerId }) {
-    const snap = useState();
-
-    const isPlayed = !!snap.history[playerId][gameId];
-
-    const shouldBeDisabled = React.useMemo(() => {
-      if (!snap.isGameStarted) return true;
-      const isFirstToPlay = Object.keys(snap.currentTurm).length === 0;
-      if (isFirstToPlay) return false;
-      // @ts-ignore
-      return isPlayed || String(snap.currentTurm?.id) !== String(playerId);
-    }, [isPlayed, snap.isGameStarted, snap.currentTurm, playerId]);
-
-    return (
-      <Button
-        isDisabled={shouldBeDisabled}
-        key={gameId}
-        height={[12, 16]}
-        fontSize={["sm", "md"]}
-        onClick={() => snap.playSelectedGame({ playerId, gameId })}
-        bg={isPlayed ? "teal.500" : "gray.100"}
-        color={isPlayed ? "white" : "gray.900"}
-        _hover={{}}
-        shadow="base"
-      >
-        {name}
-      </Button>
-    );
-  }
-
-  function PlayerGames({ playerId }) {
-    const snap = useState();
-
-    const gameList = React.useMemo(() => {
-      return Object.values(snap.games);
-    }, [snap.games]);
-
-    return (
-      <SimpleGrid columns={[2, 2, 4]} spacing={[2, 2, 4]} color="gray.900" width="full">
-        {gameList.map(({ id: gameId, name }) => {
-          return <GameButton key={gameId} gameId={gameId} name={name} playerId={playerId} />;
-        })}
-      </SimpleGrid>
-    );
-  }
 }
 
-// function Welcome({ on }) {
-//   return (
-//     <Stack width="full" spacing={4}>
-//       <AspectRatio maxW="560px" width="full" ratio={6 / 5} rounded="md" overflow="hidden">
-//         <iframe frameBorder="0" src="https://giphy.com/embed/okLCopqw6ElCDnIhuS" allowFullScreen />
-//       </AspectRatio>
+function GaneSciores() {
+  const { players, isScoreTableAvailable, onSubmitCurrentGame, currentGame } = useStore();
+  const [playersTricks, setPlayersTricks] = React.useState<{ [key: string]: number }>({});
+  const [canSubmit, { on, off }] = useBoolean(false);
 
-//       <Stack maxW="560px" width="full">
-//         <Box>
-//           <Button
-//             onClick={on}
-//             fontWeight="black"
-//             color="gray.900"
-//             width="full"
-//             _active={{}}
-//             size="lg"
-//             colorScheme="teal"
-//             height={[12, 16]}
-//             px={10}
-//           >
-//             Start
-//           </Button>
-//         </Box>
-//       </Stack>
-//     </Stack>
-//   );
-// }
+  const handleSetScores = (key, value) => {
+    setPlayersTricks((prev) => ({ ...prev, [key]: value }));
+  };
 
-export default Home;
+  const onSubmit = () => {
+    const count = Object.entries(playersTricks).reduce((acc, [key, count]) => {
+      acc[key] = Math.round(count * currentGame.game.each);
+      return acc;
+    }, {});
+    onSubmitCurrentGame(count);
+    setPlayersTricks({});
+    off();
+  };
+
+  const tricks = React.useMemo(() => {
+    let res = [];
+    if (currentGame?.game) {
+      res = [...Array(currentGame.game.count + 1)];
+    }
+    return res;
+  }, [currentGame]);
+
+  const count = React.useMemo(() => {
+    return Object.values(playersTricks).reduce((acc, n) => (acc += n), 0);
+  }, [playersTricks]);
+
+  React.useEffect(() => {
+    if (!currentGame?.game) return;
+    if (count === currentGame.game.count) {
+      on();
+    } else {
+      off();
+    }
+  }, [playersTricks, count]);
+
+  return (
+    <Stack>
+      <Text fontWeight="bold" fontSize="sm">
+        Game Scores
+      </Text>
+      <Stack bg="white" rounded="md" p={4} shadow="base">
+        {Object.entries(players).map(([key, { name }]) => {
+          return (
+            <HStack justifyContent="space-between">
+              <Text>{name}:</Text>
+              <Select
+                onChange={(e) => handleSetScores(key, +e.target.value)}
+                isDisabled={!isScoreTableAvailable}
+                w={20}
+              >
+                {tricks.map((_, index) => {
+                  return <option value={index}>{index}</option>;
+                })}
+              </Select>
+            </HStack>
+          );
+        })}
+        <Box>
+          <Button onClick={onSubmit} isDisabled={!isScoreTableAvailable || !canSubmit} w="full">
+            Submit {count}/{currentGame?.game?.count}
+          </Button>
+        </Box>
+      </Stack>
+    </Stack>
+  );
+}
