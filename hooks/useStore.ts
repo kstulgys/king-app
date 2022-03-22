@@ -65,15 +65,7 @@ const games = {
 //@ts-ignore
 type History =
   | {
-      // player id
-      [key: string]: {
-        // game id
-        [key: string]: {
-          game?: Game;
-          // player ids: score
-          scores: { [key: string]: number };
-        };
-      };
+      [key: string]: {}[];
     }
   | {};
 type Player = { id: string; name: string; score: number };
@@ -93,19 +85,22 @@ const state = proxy({
   onStartGame: (players) => {
     Object.entries(players).forEach(([id, name]) => {
       state.players[id] = { id, name, score: 0 };
-      state.history[id] = {};
+      state.history[id] = [];
     });
     state.hasStarted = true;
   },
   onPlaySelectedGame: (gameId, playerId) => {
     state.currentGame = { player: state.players[playerId], game: state.games[gameId] };
-    state.history[playerId][gameId] = { game: state.games[gameId], scores: {} };
+    state.history[playerId].push({ game: state.games[gameId], scores: {} });
   },
   onFinishCurrentGame: () => {
     state.isScoreTableAvailable = true;
   },
   onSubmitCurrentGame: (scores: { [key: string]: number }) => {
-    state.history[state.currentGame.player.id][state.currentGame.game.id].scores = { ...scores };
+    const index = state.history[state.currentGame.player.id].findIndex(
+      ({ game }) => game.id === state.currentGame.game.id,
+    );
+    state.history[state.currentGame.player.id][index].scores = { ...scores };
     Object.entries(scores).forEach(([key, value]) => {
       state.players[key].score += value;
     });

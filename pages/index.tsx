@@ -127,7 +127,8 @@ function PlayerBoard({ id: playerId, name }) {
       <Stack bg="white" rounded="md" p={4} shadow="base">
         <SimpleGrid columns={[3, 3, 4]} spacing={4}>
           {Object.values(games).map(({ id, name }) => {
-            const isPlayed = !!history?.[playerId]?.[id];
+            const index = history[playerId].findIndex(({ game }) => game.id === id);
+            const isPlayed = !!history?.[playerId]?.[index];
             const hasNotStarted = !currentGame;
             const isPlaying = !!currentGame?.game;
             const isDisabled = isPlaying || isPlayed || playerId !== currentGame?.player.id;
@@ -156,15 +157,7 @@ function PlayerBoard({ id: playerId, name }) {
 
 function HistoryAccordion({ id }) {
   const { history, players } = useStore();
-
-  const games = React.useMemo(() => {
-    const playerHistory = Object.values(history[id] || {}) as { [key: string]: { [key: string]: number } }[];
-    return playerHistory.reduce((acc, { game, scores }) => {
-      const a = [game.name, ...Object.values(scores)];
-      acc.push(a);
-      return acc;
-    }, []) as string[][];
-  }, [history]);
+  const historyList = history[id];
 
   return (
     <Accordion allowToggle>
@@ -177,21 +170,24 @@ function HistoryAccordion({ id }) {
             <AccordionIcon />
           </AccordionButton>
         </h2>
-        <AccordionPanel pb={4}>
+        <AccordionPanel pb={4} fontSize="sm">
           <SimpleGrid columns={Object.keys(players).length + 1}>
-            <Text fontWeight="medium"></Text>
-            {Object.values(players).map(({ name }) => {
-              return <Text textAlign="center">{name}</Text>;
-            })}
+            <Text></Text>
+            {Object.values(players).map(({ name }) => (
+              <Text textAlign="center">{name}</Text>
+            ))}
           </SimpleGrid>
-          <SimpleGrid columns={Object.keys(players).length + 1}>
-            {games.map((row: string[]) => {
-              return (
-                row.length > 1 &&
-                row.map((value, index) => <Text textAlign={index === 0 ? "left" : "center"}>{value}</Text>)
-              );
-            })}
-          </SimpleGrid>
+
+          {historyList.map(({ game, scores }) => {
+            return (
+              <SimpleGrid columns={Object.keys(players).length + 1}>
+                <Text>{game.name}</Text>
+                {Object.values(scores).map((value) => (
+                  <Text textAlign="center">{value}</Text>
+                ))}
+              </SimpleGrid>
+            );
+          })}
         </AccordionPanel>
       </AccordionItem>
     </Accordion>
