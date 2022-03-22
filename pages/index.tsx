@@ -16,6 +16,22 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  Textarea,
+  Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
 } from "@chakra-ui/react";
 import { useStore } from "../hooks/useStore";
 
@@ -108,14 +124,87 @@ function AddPlayers() {
               w="full"
               size="lg"
             >
-              Start the game
+              Start Game
             </Button>
+          </Box>
+          <Box>
+            <DrawerExample />
           </Box>
         </Stack>
       </Stack>
     </Stack>
   );
 }
+
+function DrawerExample() {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const btnRef = React.useRef();
+  const { games, setNewGame } = useStore();
+  const [gamesObjString, setOb] = React.useState(() => {
+    return JSON.stringify({ ...games }, null, 4);
+  });
+
+  return (
+    <>
+      <Button bg="gray.900" _hover={{}} color="white" onClick={onOpen} w="full" size="lg">
+        Open Game Editor
+      </Button>
+      <Drawer isOpen={isOpen} placement="right" onClose={onClose} finalFocusRef={btnRef}>
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader px={4}>Game Editor</DrawerHeader>
+
+          <DrawerBody px={4}>
+            <Textarea height="full" defaultValue={gamesObjString} onChange={(e) => setOb(e.target.value)} />
+          </DrawerBody>
+
+          <DrawerFooter px={4}>
+            <Button width="full" size="lg">
+              Save
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
+  );
+}
+
+// function BasicUsage() {
+//   const { games, setNewGame } = useStore();
+//   const [gamesObjString, setOb] = React.useState(() => {
+//     return JSON.stringify({ ...games }, null, 4);
+//   });
+//   const { onOpen, onClose } = useDisclosure();
+//   let isOpen = true;
+
+//   return (
+//     <>
+//       <Button bg="gray.900" _hover={{}} color="white" onClick={onOpen} w="full" size="lg">
+//         Create Game
+//       </Button>
+
+//       <Modal isOpen={isOpen} onClose={onClose}>
+//         <ModalOverlay />
+//         <ModalContent>
+//           <ModalHeader>Modal Title</ModalHeader>
+//           <ModalCloseButton />
+//           <ModalBody>
+//             <Stack>
+//               <Textarea rows={20} defaultValue={gamesObjString} onChange={(e) => setOb(e.target.value)} />
+//             </Stack>
+//           </ModalBody>
+//           <ModalFooter>
+//             <Button colorScheme="blue" mr={3} onClick={onClose}>
+//               Close
+//             </Button>
+//             <Button variant="primary">Set new Game</Button>
+//           </ModalFooter>
+//         </ModalContent>
+//       </Modal>
+//     </>
+//   );
+// }
 
 function PlayerBoard({ id: playerId, name }) {
   const { games, history, onPlaySelectedGame, currentGame } = useStore();

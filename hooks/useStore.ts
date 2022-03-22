@@ -3,69 +3,60 @@ import { proxy, useSnapshot } from "valtio";
 const turkishKing = {};
 const frenchKing = {};
 
-const games = {
+export const games = {
   1: {
     id: 1,
     name: "Tricks++",
     each: 12,
-    totalPoints: 120,
     count: 10,
   },
   2: {
     id: 2,
     name: "Tricks++",
     each: 12,
-    totalPoints: 120,
     count: 10,
   },
   3: {
     id: 3,
     name: "Tricks--",
     each: -4,
-    totalPoints: -40,
     count: 10,
   },
   4: {
     id: 4,
     name: "Hearts",
     each: -5,
-    totalPoints: -40,
     count: 8,
   },
   5: {
     id: 5,
     name: "Queens",
     each: -10,
-    totalPoints: -40,
     count: 4,
   },
   6: {
     id: 6,
     name: "Jacks",
     each: -10,
-    totalPoints: -40,
     count: 4,
   },
   7: {
     id: 7,
     name: "King",
     each: -40,
-    totalPoints: -40,
     count: 1,
   },
   8: {
     id: 8,
     name: "Last 2",
     each: -20,
-    totalPoints: -40,
     count: 2,
   },
 } as const;
 
-//@ts-ignore
 type History =
   | {
-      [key: string]: {}[];
+      [key: string]: { game: Game; scores: { [key: string]: number } }[];
     }
   | {};
 type Player = { id: string; name: string; score: number };
@@ -82,6 +73,9 @@ const state = proxy({
   history: {} as History,
   currentGame: undefined as CurrentGame,
   isScoreTableAvailable: false,
+  setNewGame: (games) => {
+    state.games = games;
+  },
   onStartGame: (players) => {
     Object.entries(players).forEach(([id, name]) => {
       state.players[id] = { id, name, score: 0 };
