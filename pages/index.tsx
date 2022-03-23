@@ -45,7 +45,14 @@ export default function App() {
       {!hasStarted ? (
         <AddPlayers />
       ) : (
-        <Stack direction={["column-reverse", "column-reverse", "row"]} p={4} spacing={6}>
+        <Stack
+          maxW="6xl"
+          width="full"
+          mx="auto"
+          direction={["column-reverse", "column-reverse", "row"]}
+          p={4}
+          spacing={10}
+        >
           <Stack width={["full", "full", "70%"]} spacing={[6, 6, 8]}>
             {Object.values(players).map((p) => (
               <PlayerBoard key={p.id} {...p} />
