@@ -84,8 +84,11 @@ const state = proxy({
     state.hasStarted = true;
   },
   onPlaySelectedGame: (gameId, playerId) => {
-    state.currentGame = { player: state.players[playerId], game: state.games[gameId] };
-    state.history[playerId].push({ game: state.games[gameId], scores: {} });
+    let isExecuted = confirm(`${state.players[playerId].name} will play ${state.games[gameId].name}`);
+    if (isExecuted) {
+      state.currentGame = { player: state.players[playerId], game: state.games[gameId] };
+      state.history[playerId].push({ game: state.games[gameId], scores: {} });
+    }
   },
   onFinishCurrentGame: () => {
     state.isScoreTableAvailable = true;

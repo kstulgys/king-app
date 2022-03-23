@@ -16,13 +16,6 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
   useDisclosure,
   Textarea,
   Drawer,
@@ -34,6 +27,15 @@ import {
   DrawerCloseButton,
 } from "@chakra-ui/react";
 import { useStore } from "../hooks/useStore";
+
+function isValidJson(str) {
+  try {
+    const json = JSON.parse(str);
+    return typeof json === "object";
+  } catch (e) {
+    return false;
+  }
+}
 
 export default function App() {
   const { players, hasStarted } = useStore();
@@ -128,7 +130,7 @@ function AddPlayers() {
             </Button>
           </Box>
           <Box>
-            <DrawerExample />
+            <DrawerExample canSubmit={canSubmit} handleSartGame={handleSartGame} />
           </Box>
         </Stack>
       </Stack>
@@ -136,7 +138,7 @@ function AddPlayers() {
   );
 }
 
-function DrawerExample() {
+function DrawerExample({ canSubmit, handleSartGame }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const btnRef = React.useRef();
   const { games, setNewGame } = useStore();
@@ -144,9 +146,17 @@ function DrawerExample() {
     return JSON.stringify({ ...games }, null, 4);
   });
 
+  const handleSetNewGame = () => {
+    if (isValidJson(gamesObjString)) {
+      const parsed = JSON.parse(gamesObjString);
+      setNewGame(parsed);
+      handleSartGame();
+    }
+  };
+
   return (
     <>
-      <Button bg="gray.900" _hover={{}} color="white" onClick={onOpen} w="full" size="lg">
+      <Button isDisabled={!canSubmit} bg="gray.900" _hover={{}} color="white" onClick={onOpen} w="full" size="lg">
         Open Game Editor
       </Button>
       <Drawer isOpen={isOpen} placement="right" onClose={onClose} finalFocusRef={btnRef}>
@@ -160,8 +170,8 @@ function DrawerExample() {
           </DrawerBody>
 
           <DrawerFooter px={4}>
-            <Button width="full" size="lg">
-              Save
+            <Button width="full" size="lg" onClick={handleSetNewGame}>
+              Start Game
             </Button>
           </DrawerFooter>
         </DrawerContent>
